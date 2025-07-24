@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
 import { useAppStore } from '@/store'
+import { useSmoothProgress } from '@/hooks/useSmoothProgress'
+import { useState, useEffect } from 'react'
 
 interface LoadingProgressProps {
-  onComplete?: () => void
+  // 显示控制
+  visible?: boolean // 是否可见，默认 true
   // Sigmoid 函数参数
   simulationSpeed?: number // 模拟速度系数，默认 1.0
   steepness?: number // 曲线陡峭程度，默认 6
@@ -10,78 +12,55 @@ interface LoadingProgressProps {
 }
 
 export default function LoadingProgress({ 
-  onComplete,
+  visible = true,
   simulationSpeed = 1.0,
   steepness = 6,
   midpoint = 0.5
 }: LoadingProgressProps) {
   const { resourceCache } = useAppStore()
-  const [displayProgress, setDisplayProgress] = useState(0)
-  const [isComplete, setIsComplete] = useState(false)
+  
+  // 内部状态管理渲染和透明度
+  const [shouldRender, setShouldRender] = useState(visible)
+  const [opacity, setOpacity] = useState(visible ? 1 : 0)
+  
+  // 使用优化的平滑进度 hook
+  const { displayProgress } = useSmoothProgress(resourceCache.progress, {
+    simulationSpeed,
+    steepness,
+    midpoint
+  })
 
-  // Sigmoid 函数：生成 S 型曲线
-  const sigmoidTransform = useCallback((progress: number): number => {
-    if (progress <= 0) return 0
-    if (progress >= 100) return 100
-    
-    // 将进度 (0-100) 映射到 (0-1)
-    const t = progress / 100
-    
-    // 应用 Sigmoid 变换
-    const x = (t - midpoint) * steepness
-    const sigmoid = 1 / (1 + Math.exp(-x))
-    
-    // 标准化到 0-100 范围
-    const minValue = 1 / (1 + Math.exp(midpoint * steepness))
-    const maxValue = 1 / (1 + Math.exp((midpoint - 1) * steepness))
-    
-    const normalized = (sigmoid - minValue) / (maxValue - minValue)
-    return Math.max(0, Math.min(100, normalized * 100))
-  }, [steepness, midpoint])
-
-  // 使用 Sigmoid 函数平滑显示进度
+  // 监听 visible 属性变化，控制淡入淡出
   useEffect(() => {
-    const targetProgress = resourceCache.progress
-    const currentProgress = displayProgress
-    
-    if (Math.abs(targetProgress - currentProgress) > 0.1) {
-      // 使用 Sigmoid 变换让进度更平滑
-      const sigmoidTarget = sigmoidTransform(targetProgress)
-      const sigmoidCurrent = sigmoidTransform(currentProgress)
-      
-      // 计算增量，让动画更平滑
-      const diff = sigmoidTarget - sigmoidCurrent
-      const increment = diff * 0.1 * simulationSpeed // 调整平滑速度
-      
+    if (visible) {
+      // 显示：立即渲染，然后淡入
+      setShouldRender(true)
+      // 使用 requestAnimationFrame 确保渲染完成后再设置透明度
+      requestAnimationFrame(() => {
+        setOpacity(1)
+      })
+    } else {
+      // 隐藏：先淡出，然后停止渲染
+      setOpacity(0)
+      // 等待淡出动画完成后再停止渲染
       const timer = setTimeout(() => {
-        setDisplayProgress(prev => {
-          const newProgress = prev + increment
-          return Math.max(0, Math.min(100, newProgress))
-        })
-      }, 16) // 约60fps
+        setShouldRender(false)
+      }, 500) // 与 CSS transition 时间保持一致
       
       return () => clearTimeout(timer)
     }
-  }, [resourceCache.progress, displayProgress, simulationSpeed, sigmoidTransform])
+  }, [visible])
 
-  // 检查完成状态
-  useEffect(() => {
-    if (resourceCache.isLoaded && displayProgress >= 100 && !isComplete) {
-      setIsComplete(true)
-      const timer = setTimeout(() => {
-        onComplete?.()
-      }, 500)
-      
-      return () => clearTimeout(timer)
-    }
-  }, [resourceCache.isLoaded, displayProgress, isComplete, onComplete])
-
-  if (isComplete && displayProgress >= 100) {
+  // 如果不应该渲染，直接返回 null
+  if (!shouldRender) {
     return null
   }
 
   return (
-    <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
+    <div 
+      className="fixed inset-0 bg-black flex items-center justify-center z-50 transition-opacity duration-500 ease-out"
+      style={{ opacity }}
+    >
       {/* 背景动画 */}
       <div className="absolute inset-0 bg-gradient-to-br from-green-900/20 to-blue-900/20">
         <div className="absolute inset-0 bg-black/80" />
@@ -91,12 +70,12 @@ export default function LoadingProgress({
       <div className="relative z-10 flex flex-col items-center justify-center px-8 py-12 max-w-md w-full mx-auto">
         {/* Logo 或图标 */}
         <div className="mb-8">
-          <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center shadow-2xl">
-            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-              <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
+          <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-blue-500 rounded-full p-1 shadow-2xl">
+            <img 
+              src="/pwa-192x192.png" 
+              alt="MemoBloom Logo" 
+              className="w-full h-full rounded-full object-cover"
+            />
           </div>
         </div>
 

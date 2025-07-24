@@ -57,28 +57,34 @@ export default defineConfig({
         short_name: 'MemoBloom',
         description: 'A Web game about plant cultivation',
         theme_color: '#10b981',
-        background_color: '#ffffff',
+        background_color: '#000000',
         display: 'standalone',
         scope: '/',
-        start_url: '/',
+        start_url: '/?source=pwa',
         icons: [
           {
             src: 'pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
           },
           {
             src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any'
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
           }
-        ]
+        ],
+        // 分类
+        categories: ['games', 'productivity'],
+        // 截图（可选，用于应用商店展示）
+        screenshots: []
       },
       devOptions: {
         enabled: true
