@@ -13,7 +13,7 @@ export interface AppActions {
   addPlant: (plant: Plant) => void
   updatePlant: (id: string, updates: Partial<Plant>) => void
   removePlant: (id: string) => void
-  setCurrentPlant: (plant: Plant | null) => void
+  setCurrentPlantId: (plantId: string | null) => void
   
   // 浇水记录相关
   setWateringRecords: (records: WateringRecord[]) => void

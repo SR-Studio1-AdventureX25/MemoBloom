@@ -11,7 +11,7 @@ export interface ResourceCacheStatus {
 // 应用状态类型
 export interface AppState {
   plants: Plant[]                 // 植物列表
-  currentPlant: Plant | null      // 当前植物
+  currentPlantId: string | null   // 当前植物ID
   wateringRecords: WateringRecord[] // 浇水记录
   offlineWateringQueue: OfflineWateringItem[] // 离线浇水队列
   isOnline: boolean               // 在线状态

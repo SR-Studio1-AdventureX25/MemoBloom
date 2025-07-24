@@ -12,7 +12,7 @@ export const useAppStore = create<AppStore>()(
       (set) => ({
         // State - 初始状态
         plants: [],
-        currentPlant: null,
+        currentPlantId: null,
         wateringRecords: [],
         offlineWateringQueue: [],
         isOnline: true,
@@ -39,7 +39,7 @@ export const useAppStore = create<AppStore>()(
           plants: state.plants.filter(plant => plant.id !== id)
         })),
 
-        setCurrentPlant: (plant: Plant | null) => set({ currentPlant: plant }),
+        setCurrentPlantId: (plantId: string | null) => set({ currentPlantId: plantId }),
 
         // Actions - 浇水记录相关
         setWateringRecords: (records: WateringRecord[]) => set({ wateringRecords: records }),
@@ -105,7 +105,7 @@ export const useAppStore = create<AppStore>()(
         name: 'memobloom-storage',
         partialize: (state) => ({
           plants: state.plants,
-          currentPlant: state.currentPlant,
+          currentPlantId: state.currentPlantId,
           wateringRecords: state.wateringRecords,
           notifications: state.notifications
         })

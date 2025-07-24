@@ -1,153 +1,235 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useMemo } from 'react'
 import { useAppStore } from '@/store'
 import { apiService } from '@/services/api'
-import type { Plant } from '@/types'
-import CreatePlant from './CreatePlant'
+import type { Plant } from '@/types/plant'
 import VideoBackground from '@/components/VideoBackground'
 import MicrophoneButton from '@/components/MicrophoneButton'
 
-export default function HomePage() {
-  const { plants, currentPlant, setPlants, setCurrentPlant, isOnline, addNotification } = useAppStore()
-  const [isLoading, setIsLoading] = useState(true)
-  const [showCreatePlant, setShowCreatePlant] = useState(false)
+// 常量
+const LOADING_TEXT = '检查植物状态中...'
+const OFFLINE_NOTIFICATION = {
+  title: '离线模式',
+  message: '当前处于离线状态，创建的植物将在联网后同步',
+  type: 'warning' as const,
+  read: false
+}
 
-  // 同步植物数据
-  const syncPlantData = useCallback(async () => {
+export default function HomePage() {
+  const { plants, currentPlantId, setPlants, setCurrentPlantId, isOnline, addNotification } = useAppStore()
+  const [isLoading, setIsLoading] = useState(true)
+
+  // 计算当前植物 - 使用 useMemo 优化性能
+  const currentPlant = useMemo(() => {
+    return currentPlantId ? plants.find(p => p.id === currentPlantId) : null
+  }, [currentPlantId, plants])
+
+  // 设置当前植物ID（如果需要的话）
+  const ensureCurrentPlant = useCallback((plantsData: Plant[]) => {
+    if (plantsData.length > 0) {
+      // 如果没有当前植物ID或当前植物ID对应的植物不存在，使用第一个植物
+      if (!currentPlantId || !plantsData.find(p => p.id === currentPlantId)) {
+        setCurrentPlantId(plantsData[0].id)
+      }
+    }
+  }, [currentPlantId, setCurrentPlantId])
+
+  // 统一的植物数据获取函数
+  const fetchPlants = useCallback(async (shouldEnsureCurrentPlant = false) => {
     try {
       const response = await apiService.plants.getAll()
       const serverPlants = response.data
 
       if (serverPlants && serverPlants.length > 0) {
         setPlants(serverPlants)
-        // 更新当前植物数据
-        const updatedCurrentPlant = serverPlants.find(p => p.id === currentPlant?.id)
-        if (updatedCurrentPlant) {
-          setCurrentPlant(updatedCurrentPlant)
+        if (shouldEnsureCurrentPlant) {
+          ensureCurrentPlant(serverPlants)
         }
+        return serverPlants
       }
+      return []
     } catch (error) {
-      console.error('同步植物数据失败:', error)
+      console.error('获取植物数据失败:', error)
+      throw error
     }
-  }, [setPlants, setCurrentPlant, currentPlant?.id])
+  }, [setPlants, ensureCurrentPlant])
 
+  // 处理离线且无本地数据的情况
+  const handleOfflineWithNoData = useCallback(() => {
+    addNotification(OFFLINE_NOTIFICATION)
+  }, [addNotification])
+
+  // 处理本地数据存在的情况
+  const handleLocalData = useCallback(async () => {
+    ensureCurrentPlant(plants)
+    setIsLoading(false)
+    
+    // 如果在线，尝试同步最新数据
+    if (isOnline) {
+      try {
+        await fetchPlants(false) // 仅同步数据，不改变当前植物选择
+      } catch (error) {
+        console.error('同步植物数据失败:', error)
+      }
+    }
+  }, [plants, isOnline, ensureCurrentPlant, fetchPlants])
+
+  // 处理在线且无本地数据的情况
+  const handleOnlineWithNoData = useCallback(async () => {
+    try {
+      await fetchPlants(true) // 获取数据并设置当前植物
+      // 注意：如果服务器上没有植物，路由会自动处理跳转到创建页面
+    } catch {
+      // 网络错误时，路由会自动处理跳转
+    }
+  }, [fetchPlants])
+
+  // 检查植物状态 - 简化后的主逻辑
   const checkPlantStatus = useCallback(async () => {
     try {
       setIsLoading(true)
 
-      // 如果本地有植物数据，先使用本地数据
       if (plants.length > 0) {
-        setCurrentPlant(plants[0]) // 使用第一个植物作为当前植物
-        setIsLoading(false)
-        
-        // 如果在线，尝试同步最新数据
-        if (isOnline) {
-          syncPlantData()
-        }
+        await handleLocalData()
         return
       }
 
-      // 如果在线，从服务器获取植物数据
       if (isOnline) {
-        try {
-          const response = await apiService.plants.getAll()
-          const serverPlants = response.data
-
-          if (serverPlants && serverPlants.length > 0) {
-            setPlants(serverPlants)
-            setCurrentPlant(serverPlants[0])
-          } else {
-            // 服务器上也没有植物，显示创建界面
-            setShowCreatePlant(true)
-          }
-        } catch (error) {
-          console.error('获取植物数据失败:', error)
-          // 网络错误，显示创建界面（可能是新用户）
-          setShowCreatePlant(true)
-        }
+        await handleOnlineWithNoData()
       } else {
-        // 离线且没有本地数据，显示创建界面
-        setShowCreatePlant(true)
-        addNotification({
-          title: '离线模式',
-          message: '当前处于离线状态，创建的植物将在联网后同步',
-          type: 'warning',
-          read: false
-        })
+        handleOfflineWithNoData()
       }
     } catch (error) {
       console.error('检查植物状态失败:', error)
-      setShowCreatePlant(true)
     } finally {
       setIsLoading(false)
     }
-  }, [plants, setCurrentPlant, isOnline, syncPlantData, setPlants, addNotification])
+  }, [plants.length, isOnline, handleLocalData, handleOnlineWithNoData, handleOfflineWithNoData])
 
   // 检查植物状态
   useEffect(() => {
     checkPlantStatus()
   }, [checkPlantStatus])
 
-  // 植物创建成功回调
-  const handlePlantCreated = (newPlant: Plant) => {
-    setShowCreatePlant(false)
-    setCurrentPlant(newPlant)
+  // 浇水完成回调 - 简化为普通函数
+  const handleWateringComplete = (success: boolean, message?: string) => {
+    const notificationTitle = success ? '浇水成功' : '浇水失败'
+    const notificationMessage = message || (success ? '你的植物很开心！' : '请稍后重试')
+    const notificationType = success ? 'success' : 'error'
+
     addNotification({
-      title: '植物创建成功',
-      message: `你的${newPlant.variety}已经开始成长了！`,
-      type: 'success',
+      title: notificationTitle,
+      message: notificationMessage,
+      type: notificationType,
       read: false
     })
-  }
-
-  // 浇水完成回调
-  const handleWateringComplete = (success: boolean, message?: string) => {
-    if (success) {
-      addNotification({
-        title: '浇水成功',
-        message: message || '你的植物很开心！',
-        type: 'success',
-        read: false
-      })
-      
-      // 刷新植物数据
-      if (isOnline && currentPlant) {
-        syncPlantData()
-      }
-    } else {
-      addNotification({
-        title: '浇水失败',
-        message: message || '请稍后重试',
-        type: 'error',
-        read: false
+    
+    // 刷新植物数据
+    if (success && isOnline && currentPlant) {
+      fetchPlants(false).catch(error => {
+        console.error('刷新植物数据失败:', error)
       })
     }
   }
 
-  // 加载状态
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-white">检查植物状态中...</p>
+  // 渲染加载状态
+  const renderLoadingState = () => (
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-white">{LOADING_TEXT}</p>
+      </div>
+    </div>
+  )
+
+  // 渲染植物信息头部
+  const renderPlantHeader = () => (
+    <div className="absolute top-0 left-0 right-0 z-10 p-4 bg-gradient-to-b from-black/50 to-transparent">
+      <div className="flex items-center justify-between">
+        {/* 植物信息 */}
+        <div className="text-white">
+          <h2 className="text-lg font-semibold">{currentPlant!.variety}</h2>
+          <p className="text-sm text-white/80">
+            成长阶段: {currentPlant!.currentGrowthStage}
+          </p>
+          <p className="text-sm text-white/80">
+            成长值: {currentPlant!.growthValue}
+          </p>
+        </div>
+        
+        {/* 在线状态指示器 */}
+        <div className="flex items-center space-x-2">
+          <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-400' : 'bg-red-400'}`} />
+          <span className="text-white/80 text-sm">
+            {isOnline ? '在线' : '离线'}
+          </span>
         </div>
       </div>
-    )
-  }
+    </div>
+  )
 
-  // 需要创建植物
-  if (showCreatePlant || (!currentPlant && plants.length === 0)) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-900 to-blue-900">
-        <CreatePlant 
-          onPlantCreated={handlePlantCreated}
-          onCancel={() => setShowCreatePlant(false)}
-        />
+  // 渲染植物详情
+  const renderPlantDetails = () => (
+    <div className="absolute bottom-20 left-0 right-0 z-10 p-4">
+      <div className="bg-black/30 backdrop-blur-sm rounded-lg p-4 text-white">
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <span className="text-white/60">上次浇水:</span>
+            <p className="font-medium">
+              {currentPlant!.lastWateringTime ? 
+                new Date(currentPlant!.lastWateringTime).toLocaleDateString() : 
+                '还未浇水'
+              }
+            </p>
+          </div>
+          <div>
+            <span className="text-white/60">近期状况:</span>
+            <p className="font-medium">
+              {currentPlant!.userRecentStatus || '暂无记录'}
+            </p>
+          </div>
+        </div>
+        
+        {/* 个性标签 */}
+        {currentPlant!.personalityTags && currentPlant!.personalityTags.length > 0 && (
+          <div className="mt-3">
+            <span className="text-white/60 text-sm">个性标签:</span>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {currentPlant!.personalityTags.map((tag, index) => (
+                <span
+                  key={index}
+                  className="px-2 py-1 bg-white/20 rounded-full text-xs"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
-    )
+    </div>
+  )
+
+  // 渲染错误状态
+  const renderErrorState = () => (
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="text-center text-white">
+        <h2 className="text-xl font-semibold mb-2">出现了问题</h2>
+        <p className="text-white/60 mb-4">无法加载植物数据</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded-lg font-medium transition-colors"
+        >
+          重新加载
+        </button>
+      </div>
+    </div>
+  )
+
+  // 主渲染逻辑
+  if (isLoading) {
+    return renderLoadingState()
   }
 
-  // 有植物，显示主界面
   if (currentPlant) {
     return (
       <div className="relative min-h-screen overflow-hidden">
@@ -155,68 +237,10 @@ export default function HomePage() {
         <VideoBackground />
         
         {/* 植物信息覆盖层 */}
-        <div className="absolute top-0 left-0 right-0 z-10 p-4 bg-gradient-to-b from-black/50 to-transparent">
-          <div className="flex items-center justify-between">
-            {/* 植物信息 */}
-            <div className="text-white">
-              <h2 className="text-lg font-semibold">{currentPlant.variety}</h2>
-              <p className="text-sm text-white/80">
-                成长阶段: {currentPlant.currentGrowthStage}
-              </p>
-              <p className="text-sm text-white/80">
-                成长值: {currentPlant.growthValue}
-              </p>
-            </div>
-            
-            {/* 在线状态指示器 */}
-            <div className="flex items-center space-x-2">
-              <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-400' : 'bg-red-400'}`} />
-              <span className="text-white/80 text-sm">
-                {isOnline ? '在线' : '离线'}
-              </span>
-            </div>
-          </div>
-        </div>
+        {renderPlantHeader()}
 
         {/* 底部植物详情 */}
-        <div className="absolute bottom-20 left-0 right-0 z-10 p-4">
-          <div className="bg-black/30 backdrop-blur-sm rounded-lg p-4 text-white">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-white/60">上次浇水:</span>
-                <p className="font-medium">
-                  {currentPlant.lastWateringTime ? 
-                    new Date(currentPlant.lastWateringTime).toLocaleDateString() : 
-                    '还未浇水'
-                  }
-                </p>
-              </div>
-              <div>
-                <span className="text-white/60">近期状况:</span>
-                <p className="font-medium">
-                  {currentPlant.userRecentStatus || '暂无记录'}
-                </p>
-              </div>
-            </div>
-            
-            {/* 个性标签 */}
-            {currentPlant.personalityTags && currentPlant.personalityTags.length > 0 && (
-              <div className="mt-3">
-                <span className="text-white/60 text-sm">个性标签:</span>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {currentPlant.personalityTags.map((tag, index) => (
-                    <span
-                      key={index}
-                      className="px-2 py-1 bg-white/20 rounded-full text-xs"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        {renderPlantDetails()}
 
         {/* 麦克风按钮 */}
         <div className="absolute bottom-0 left-0 right-0 z-20 p-6 pb-8">
@@ -239,19 +263,5 @@ export default function HomePage() {
     )
   }
 
-  // 其他情况显示错误
-  return (
-    <div className="min-h-screen bg-black flex items-center justify-center">
-      <div className="text-center text-white">
-        <h2 className="text-xl font-semibold mb-2">出现了问题</h2>
-        <p className="text-white/60 mb-4">无法加载植物数据</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded-lg font-medium transition-colors"
-        >
-          重新加载
-        </button>
-      </div>
-    </div>
-  )
+  return renderErrorState()
 }
