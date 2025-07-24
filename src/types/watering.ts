@@ -3,6 +3,7 @@ export interface WateringRecord {
   id: string                      // 浇水记录ID（字符串）
   plantId: string                 // 关联植物ID
   plantGrowthValue: number        // 植物成长值
+  memoryFile?: string             // 记忆附件（token）
   memoryText?: string             // 记忆文本（字符串）
   emotionTags?: string[]          // 情绪标签（字符串数组）
   emotionIntensity?: number       // 情绪强度

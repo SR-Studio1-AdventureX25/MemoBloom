@@ -10,10 +10,75 @@ export const useAppStore = create<AppStore>()(
   devtools(
     persist(
       (set) => ({
-        // State - 初始状态
-        plants: [],
-        currentPlantId: null,
-        wateringRecords: [],
+        // State - 初始状态（调试数据）
+        plants: [
+          {
+            id: 'plant-1',
+            variety: 'sunflower',
+            currentGrowthStage: 'sprout',
+            growthValue: 25,
+            lastWateringTime: '2025-01-24T10:30:00Z',
+            userRecentStatus: '今天心情不错，工作顺利',
+            personalityTags: ['乐观', '积极', '阳光'],
+            nftMinted: false,
+            createdAt: '2025-01-20T08:00:00Z'
+          },
+          {
+            id: 'plant-2',
+            variety: 'sunflower',
+            currentGrowthStage: 'mature',
+            growthValue: 75,
+            lastWateringTime: '2025-01-23T15:45:00Z',
+            userRecentStatus: '最近有点焦虑，但在努力调整',
+            personalityTags: ['敏感', '细腻', '坚韧'],
+            nftMinted: true,
+            nftAddress: '0x1234567890abcdef1234567890abcdef12345678',
+            nftWalletAddress: '0xabcdef1234567890abcdef1234567890abcdef12',
+            createdAt: '2025-01-15T12:00:00Z'
+          }
+        ],
+        currentPlantId: 'plant-1',
+        wateringRecords: [
+          {
+            id: 'record-1',
+            plantId: 'plant-1',
+            plantGrowthValue: 20,
+            memoryText: '今天完成了一个重要的项目，感觉很有成就感',
+            emotionTags: ['开心', '满足', '兴奋'],
+            emotionIntensity: 8,
+            growthIncrement: 5,
+            coreEvent: '工作成就',
+            nftMinted: false,
+            wateringTime: '2025-01-24T10:30:00Z'
+          },
+          {
+            id: 'record-2',
+            plantId: 'plant-1',
+            plantGrowthValue: 15,
+            memoryText: '和朋友聊天很开心，分享了很多有趣的想法',
+            emotionTags: ['愉快', '轻松'],
+            emotionIntensity: 7,
+            growthIncrement: 3,
+            coreEvent: '社交互动',
+            nftMinted: false,
+            wateringTime: '2025-01-23T20:15:00Z'
+          },
+          {
+            id: 'record-3',
+            plantId: 'plant-2',
+            plantGrowthValue: 70,
+            memoryText: '今天学会了一个新技能，虽然过程有点困难但很有收获',
+            emotionTags: ['困难', '坚持', '成长'],
+            emotionIntensity: 6,
+            growthIncrement: 4,
+            coreEvent: '技能学习',
+            nftMinted: true,
+            nftAddress: '0x9876543210fedcba9876543210fedcba98765432',
+            nftWalletAddress: '0xfedcba9876543210fedcba9876543210fedcba98',
+            wateringTime: '2025-01-23T15:45:00Z',
+            nftMintTime: '2025-01-23T16:00:00Z'
+          }
+        ],
         offlineWateringQueue: [],
         isOnline: true,
         resourceCache: {

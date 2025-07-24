@@ -26,9 +26,60 @@ const api = axios.create({
   },
 })
 
+// 数据验证辅助函数
+const validateApiResponse = (data: unknown, expectedType: 'array' | 'object') => {
+  if (expectedType === 'array' && !Array.isArray(data)) {
+    throw new Error('API_DATA_FORMAT_ERROR: 期望数组格式')
+  }
+  
+  if (expectedType === 'object' && (typeof data !== 'object' || data === null)) {
+    throw new Error('API_DATA_FORMAT_ERROR: 期望对象格式')
+  }
+  
+  // 检查是否意外接收到HTML字符串
+  if (typeof data === 'string' && (data.includes('<html>') || data.includes('<!doctype html>'))) {
+    throw new Error('API_DATA_FORMAT_ERROR: 数据中包含HTML内容')
+  }
+}
+
 // 响应拦截器
 api.interceptors.response.use(
   (response) => {
+    // 检查响应内容类型
+    const contentType = response.headers['content-type'] || ''
+    
+    // 如果期望JSON但返回HTML，抛出错误
+    if (contentType.includes('text/html')) {
+      console.error('API返回了HTML页面:', response.config.url)
+      console.error('响应内容:', String(response.data).substring(0, 200) + '...')
+      
+      const { addNotification } = getNotificationActions()
+      addNotification({
+        title: 'API配置错误',
+        message: '服务器返回了网页而不是数据，请检查API配置',
+        type: 'error',
+        read: false
+      })
+      
+      throw new Error('API_CONTENT_TYPE_ERROR: 期望JSON但收到HTML')
+    }
+    
+    // 检查响应数据是否为字符串形式的HTML
+    if (typeof response.data === 'string' && response.data.trim().startsWith('<!doctype html>')) {
+      console.error('检测到HTML字符串响应:', response.config.url)
+      console.error('HTML内容:', response.data.substring(0, 200) + '...')
+      
+      const { addNotification } = getNotificationActions()
+      addNotification({
+        title: 'API响应格式错误',
+        message: '接收到HTML页面而不是预期的数据格式',
+        type: 'error',
+        read: false
+      })
+      
+      throw new Error('API_HTML_RESPONSE: 检测到HTML字符串响应')
+    }
+    
     return response
   },
   (error) => {
@@ -73,18 +124,32 @@ export const apiService = {
   // 植物相关
   plants: {
     // 获取所有植物
-    getAll: (): Promise<{ data: Plant[] }> => api.get('/plants'),
+    getAll: async (): Promise<{ data: Plant[] }> => {
+      const response = await api.get('/plants')
+      validateApiResponse(response.data, 'array')
+      return response
+    },
     
     // 根据ID获取植物
-    getById: (id: string): Promise<{ data: Plant }> => api.get(`/plants/${id}`),
+    getById: async (id: string): Promise<{ data: Plant }> => {
+      const response = await api.get(`/plants/${id}`)
+      validateApiResponse(response.data, 'object')
+      return response
+    },
     
     // 创建植物
-    create: (plantData: CreatePlantRequest): Promise<{ data: CreatePlantResponse }> => 
-      api.post('/plants', plantData),
+    create: async (plantData: CreatePlantRequest): Promise<{ data: CreatePlantResponse }> => {
+      const response = await api.post('/plants', plantData)
+      validateApiResponse(response.data, 'object')
+      return response
+    },
     
     // 更新植物信息
-    update: (id: string, updates: Partial<Plant>): Promise<{ data: Plant }> => 
-      api.patch(`/plants/${id}`, updates),
+    update: async (id: string, updates: Partial<Plant>): Promise<{ data: Plant }> => {
+      const response = await api.patch(`/plants/${id}`, updates)
+      validateApiResponse(response.data, 'object')
+      return response
+    },
     
     // 删除植物
     delete: (id: string): Promise<{ data: { success: boolean } }> => 
