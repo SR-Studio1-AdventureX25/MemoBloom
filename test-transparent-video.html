@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>透明视频测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7);
+            background-size: 400% 400%;
+            animation: gradientShift 10s ease infinite;
+            min-height: 100vh;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        h1 {
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 30px;
+        }
+
+        .video-container {
+            position: relative;
+            display: inline-block;
+            margin: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        video {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+        }
+
+        .info {
+            background: rgba(255,255,255,0.9);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px auto;
+            max-width: 600px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .controls {
+            margin: 20px 0;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        .pattern-bg {
+            background-image: 
+                repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,.1) 10px, rgba(255,255,255,.1) 20px),
+                repeating-linear-gradient(-45deg, transparent, transparent 10px, rgba(0,0,0,.1) 10px, rgba(0,0,0,.1) 20px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 透明视频通道测试</h1>
+        
+        <div class="info">
+            <h3>测试说明</h3>
+            <p>这个页面用于测试MOV视频文件的透明通道（Alpha Channel）是否正常工作。</p>
+            <p>如果视频包含透明通道，您应该能够看到背景色彩透过视频的透明部分显示出来。</p>
+        </div>
+
+        <div class="controls">
+            <button onclick="toggleBackground()">切换背景模式</button>
+            <button onclick="toggleVideoSize()">切换视频尺寸</button>
+        </div>
+
+        <div class="video-container" id="videoContainer">
+            <!-- 隐藏的video元素，用于加载视频 -->
+            <video 
+                id="hiddenVideo"
+                loop 
+                autoplay 
+                muted
+                style="display: none;"
+            >
+                <source src="tests/飞书20250724-221207.mov" type="video/quicktime">
+            </video>
+            
+            <!-- Canvas用于渲染透明视频 -->
+            <canvas 
+                id="transparentCanvas"
+                width="600"
+                height="400"
+                style="border-radius: 10px; cursor: pointer;"
+            ></canvas>
+            
+            <!-- 控制按钮 -->
+            <div style="margin-top: 10px;">
+                <button id="playPauseBtn" onclick="togglePlayPause()">▶️ 播放</button>
+                <button onclick="restartVideo()">🔄 重播</button>
+            </div>
+        </div>
+
+        <div class="info">
+            <h3>🔍 透明通道检测</h3>
+            <div id="debugInfo" style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0; text-align: left; font-family: monospace; font-size: 12px;">
+                <div id="videoInfo">正在分析视频...</div>
+                <div id="alphaInfo">正在检测透明通道...</div>
+                <div id="pixelInfo">像素分析待开始...</div>
+            </div>
+            <button onclick="analyzeTransparency()" style="background: #2196F3;">🔍 分析透明通道</button>
+        </div>
+
+        <div class="info">
+            <h3>检查要点</h3>
+            <ul style="text-align: left;">
+                <li><strong>透明效果：</strong>视频中的透明部分应该显示背景颜色</li>
+                <li><strong>边缘质量：</strong>透明边缘应该平滑，没有白边或黑边</li>
+                <li><strong>色彩保真：</strong>非透明部分的颜色应该准确显示</li>
+                <li><strong>播放流畅：</strong>视频应该能够正常播放，没有卡顿</li>
+            </ul>
+        </div>
+
+        <div class="info">
+            <h3>浏览器兼容性</h3>
+            <p><strong>支持透明视频的浏览器：</strong></p>
+            <ul style="text-align: left;">
+                <li>Safari (最佳支持)</li>
+                <li>Chrome/Edge (部分支持)</li>
+                <li>Firefox (有限支持)</li>
+            </ul>
+            <p><em>注意：不同浏览器对透明视频的支持程度不同，建议在Safari中测试以获得最佳效果。</em></p>
+        </div>
+    </div>
+
+    <script>
+        let isPatternBackground = false;
+        let isLargeSize = false;
+        let isPlaying = false;
+        let animationId = null;
+
+        // 获取元素
+        const video = document.getElementById('hiddenVideo');
+        const canvas = document.getElementById('transparentCanvas');
+        const ctx = canvas.getContext('2d');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+
+        function toggleBackground() {
+            const body = document.body;
+            if (isPatternBackground) {
+                body.classList.remove('pattern-bg');
+                body.style.background = 'linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7)';
+                body.style.backgroundSize = '400% 400%';
+                body.style.animation = 'gradientShift 10s ease infinite';
+                isPatternBackground = false;
+            } else {
+                body.style.background = '#f0f0f0';
+                body.style.animation = 'none';
+                body.classList.add('pattern-bg');
+                isPatternBackground = true;
+            }
+        }
+
+        function toggleVideoSize() {
+            const canvas = document.getElementById('transparentCanvas');
+            if (isLargeSize) {
+                canvas.width = 600;
+                canvas.height = 400;
+                canvas.style.width = '600px';
+                canvas.style.height = '400px';
+                isLargeSize = false;
+            } else {
+                canvas.width = 800;
+                canvas.height = 600;
+                canvas.style.width = '800px';
+                canvas.style.height = '600px';
+                isLargeSize = true;
+            }
+        }
+
+        function togglePlayPause() {
+            if (isPlaying) {
+                video.pause();
+                cancelAnimationFrame(animationId);
+                playPauseBtn.textContent = '▶️ 播放';
+                isPlaying = false;
+            } else {
+                video.play();
+                renderFrame();
+                playPauseBtn.textContent = '⏸️ 暂停';
+                isPlaying = true;
+            }
+        }
+
+        function restartVideo() {
+            video.currentTime = 0;
+            if (!isPlaying) {
+                video.play();
+                renderFrame();
+                playPauseBtn.textContent = '⏸️ 暂停';
+                isPlaying = true;
+            }
+        }
+
+        function renderFrame() {
+            if (video.readyState >= 2) {
+                // 清除画布（这样就能显示透明背景）
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // 绘制视频帧到画布
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            }
+            
+            if (isPlaying && !video.paused && !video.ended) {
+                animationId = requestAnimationFrame(renderFrame);
+            }
+        }
+
+        // 视频加载错误处理
+        video.addEventListener('error', function(e) {
+            console.error('视频加载失败:', e);
+            const container = document.getElementById('videoContainer');
+            container.innerHTML = `
+                <div style="padding: 40px; background: rgba(255,0,0,0.1); border: 2px dashed #ff6b6b; border-radius: 10px;">
+                    <h3 style="color: #d63031; margin: 0;">⚠️ 视频加载失败</h3>
+                    <p style="margin: 10px 0;">请检查视频文件路径是否正确：<code>tests/飞书20250724-221207.mov</code></p>
+                    <p style="margin: 10px 0; font-size: 14px; color: #666;">
+                        可能的原因：<br>
+                        1. 文件路径不正确<br>
+                        2. 浏览器不支持该视频格式<br>
+                        3. 需要在本地服务器环境下运行<br>
+                        4. 视频文件可能没有透明通道
+                    </p>
+                </div>
+            `;
+        });
+
+        // 视频成功加载时的处理
+        video.addEventListener('loadeddata', function() {
+            console.log('视频加载成功！');
+            // 调整Canvas尺寸以匹配视频
+            canvas.width = video.videoWidth || 600;
+            canvas.height = video.videoHeight || 400;
+            
+            // 开始渲染
+            isPlaying = true;
+            renderFrame();
+        });
+
+        // 视频播放状态变化
+        video.addEventListener('play', function() {
+            isPlaying = true;
+            renderFrame();
+            playPauseBtn.textContent = '⏸️ 暂停';
+        });
+
+        video.addEventListener('pause', function() {
+            isPlaying = false;
+            cancelAnimationFrame(animationId);
+            playPauseBtn.textContent = '▶️ 播放';
+        });
+
+        video.addEventListener('ended', function() {
+            isPlaying = false;
+            cancelAnimationFrame(animationId);
+            playPauseBtn.textContent = '▶️ 播放';
+        });
+
+        // Canvas点击事件
+        canvas.addEventListener('click', togglePlayPause);
+
+        // 透明通道分析函数
+        function analyzeTransparency() {
+            const videoInfo = document.getElementById('videoInfo');
+            const alphaInfo = document.getElementById('alphaInfo');
+            const pixelInfo = document.getElementById('pixelInfo');
+
+            if (video.readyState < 2) {
+                alphaInfo.innerHTML = '❌ 视频尚未加载完成，请等待...';
+                return;
+            }
+
+            // 更新视频信息
+            videoInfo.innerHTML = `
+                📹 视频信息: ${video.videoWidth}×${video.videoHeight}px, 
+                时长: ${video.duration.toFixed(1)}s, 
+                格式: ${video.currentSrc.split('.').pop().toUpperCase()}
+            `;
+
+            // 创建临时canvas进行像素分析
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = Math.min(video.videoWidth, 200);
+            tempCanvas.height = Math.min(video.videoHeight, 200);
+
+            // 绘制当前帧
+            tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+
+            try {
+                // 获取像素数据
+                const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+                const data = imageData.data;
+                
+                let totalPixels = 0;
+                let transparentPixels = 0;
+                let semiTransparentPixels = 0;
+                let opaquePixels = 0;
+                let alphaValues = [];
+
+                // 分析每个像素的alpha值
+                for (let i = 3; i < data.length; i += 4) {
+                    const alpha = data[i];
+                    alphaValues.push(alpha);
+                    totalPixels++;
+
+                    if (alpha === 0) {
+                        transparentPixels++;
+                    } else if (alpha === 255) {
+                        opaquePixels++;
+                    } else {
+                        semiTransparentPixels++;
+                    }
+                }
+
+                // 计算统计信息
+                const transparentPercentage = (transparentPixels / totalPixels * 100).toFixed(1);
+                const semiTransparentPercentage = (semiTransparentPixels / totalPixels * 100).toFixed(1);
+                const opaquePercentage = (opaquePixels / totalPixels * 100).toFixed(1);
+
+                const minAlpha = Math.min(...alphaValues);
+                const maxAlpha = Math.max(...alphaValues);
+                const avgAlpha = (alphaValues.reduce((a, b) => a + b, 0) / alphaValues.length).toFixed(1);
+
+                // 判断是否有透明通道
+                const hasTransparency = transparentPixels > 0 || semiTransparentPixels > 0 || minAlpha < 255;
+
+                if (hasTransparency) {
+                    alphaInfo.innerHTML = `✅ <strong>检测到透明通道！</strong>`;
+                    pixelInfo.innerHTML = `
+                        🔍 像素分析 (样本: ${totalPixels}px):<br>
+                        • 完全透明: ${transparentPixels} (${transparentPercentage}%)<br>
+                        • 半透明: ${semiTransparentPixels} (${semiTransparentPercentage}%)<br>
+                        • 不透明: ${opaquePixels} (${opaquePercentage}%)<br>
+                        • Alpha范围: ${minAlpha} - ${maxAlpha} (平均: ${avgAlpha})
+                    `;
+                } else {
+                    alphaInfo.innerHTML = `❌ <strong>未检测到透明通道</strong> - 所有像素都是不透明的`;
+                    pixelInfo.innerHTML = `
+                        🔍 像素分析结果:<br>
+                        • 视频文件可能不包含Alpha通道<br>
+                        • 或者当前帧没有透明内容<br>
+                        • Alpha值均为: ${maxAlpha} (完全不透明)<br>
+                        <br>
+                        💡 <strong>建议</strong>:<br>
+                        1. 检查视频导出时是否启用了Alpha通道<br>
+                        2. 确认视频编码支持透明度 (如ProRes 4444)<br>
+                        3. 尝试其他帧或时间点进行分析
+                    `;
+                }
+
+                // 如果有透明度但页面没显示，可能是浏览器兼容性问题
+                if (hasTransparency) {
+                    pixelInfo.innerHTML += `<br><br>🎯 <strong>如果透明效果没有显示</strong>:<br>
+                        • 尝试在Safari浏览器中打开 (最佳支持)<br>
+                        • 确保使用HTTPS或本地服务器<br>
+                        • 检查浏览器控制台是否有错误信息`;
+                }
+
+            } catch (error) {
+                alphaInfo.innerHTML = `❌ 分析失败: ${error.message}`;
+                pixelInfo.innerHTML = `可能原因: CORS限制或视频编码问题<br>
+                    建议: 尝试在本地服务器环境下运行此页面`;
+                console.error('透明通道分析错误:', error);
+            }
+        }
+
+        // 自动在视频加载后进行分析
+        video.addEventListener('loadeddata', function() {
+            console.log('视频加载成功！');
+            // 调整Canvas尺寸以匹配视频
+            canvas.width = video.videoWidth || 600;
+            canvas.height = video.videoHeight || 400;
+            
+            // 开始渲染
+            isPlaying = true;
+            renderFrame();
+
+            // 延迟分析，确保视频帧可用
+            setTimeout(() => {
+                analyzeTransparency();
+            }, 500);
+        });
+    </script>
+</body>
+</html>
