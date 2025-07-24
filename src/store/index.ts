@@ -11,7 +11,6 @@ export const useAppStore = create<AppStore>()(
     persist(
       (set) => ({
         // State - 初始状态
-        user: null,
         plants: [],
         currentPlant: null,
         wateringRecords: [],

@@ -10,7 +10,6 @@ export interface ResourceCacheStatus {
 
 // 应用状态类型
 export interface AppState {
-  user?: unknown                  // 用户信息（暂未定义具体类型）
   plants: Plant[]                 // 植物列表
   currentPlant: Plant | null      // 当前植物
   wateringRecords: WateringRecord[] // 浇水记录

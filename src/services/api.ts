@@ -69,15 +69,6 @@ import type {
 
 // API方法
 export const apiService = {
-  // 用户相关
-  auth: {
-    login: (credentials: { email: string; password: string }) =>
-      api.post('/auth/login', credentials),
-    register: (userData: { email: string; password: string; name: string }) =>
-      api.post('/auth/register', userData),
-    logout: () => api.post('/auth/logout'),
-    refreshToken: () => api.post('/auth/refresh'),
-  },
 
   // 植物相关
   plants: {
