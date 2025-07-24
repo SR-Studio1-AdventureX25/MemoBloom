@@ -1,67 +1,12 @@
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
-import type { 
-  AppState as AppStateType, 
-  Plant, 
-  WateringRecord, 
-  OfflineWateringItem, 
-  ResourceCacheStatus 
-} from '@/types'
+import type { AppState, Plant, WateringRecord, OfflineWateringItem, ResourceCacheStatus } from '@/types'
+import type { AppStore } from './types'
 
-interface AppActions {
-  
-  // 植物相关
-  setPlants: (plants: Plant[]) => void
-  addPlant: (plant: Plant) => void
-  updatePlant: (id: string, updates: Partial<Plant>) => void
-  removePlant: (id: string) => void
-  setCurrentPlant: (plant: Plant | null) => void
-  
-  // 浇水记录相关
-  setWateringRecords: (records: WateringRecord[]) => void
-  addWateringRecord: (record: WateringRecord) => void
-  updateWateringRecord: (id: string, updates: Partial<WateringRecord>) => void
-  
-  // 离线队列相关
-  addToOfflineQueue: (item: OfflineWateringItem) => void
-  removeFromOfflineQueue: (id: string) => void
-  updateOfflineQueueItem: (id: string, updates: Partial<OfflineWateringItem>) => void
-  clearOfflineQueue: () => void
-  
-  // 网络状态
-  setOnlineStatus: (status: boolean) => void
-  
-  // 资源缓存
-  setResourceCache: (status: ResourceCacheStatus) => void
-  updateResourceCacheProgress: (progress: number) => void
-  
-  // 通知相关
-  addNotification: (notification: Omit<AppStateType['notifications'][0], 'id' | 'createdAt'>) => void
-  markNotificationAsRead: (id: string) => void
-  clearNotifications: () => void
-}
+// 重新导出选择器函数以保持向后兼容性
+export { useResourceCacheActions, useNotificationActions, useOnlineActions } from './selectors'
 
-// Selector functions for specific actions with stable references
-export const useResourceCacheActions = () => {
-  const setResourceCache = useAppStore(state => state.setResourceCache)
-  const updateResourceCacheProgress = useAppStore(state => state.updateResourceCacheProgress)
-  
-  return { setResourceCache, updateResourceCacheProgress }
-}
-
-export const useNotificationActions = () => {
-  const addNotification = useAppStore(state => state.addNotification)
-  
-  return { addNotification }
-}
-
-export const useOnlineActions = () => {
-  const setOnlineStatus = useAppStore(state => state.setOnlineStatus)
-  
-  return { setOnlineStatus }
-}
-
-export const useAppStore = create<AppStateType & AppActions>()(
+export const useAppStore = create<AppStore>()(
   devtools(
     persist(
       (set) => ({
@@ -77,7 +22,6 @@ export const useAppStore = create<AppStateType & AppActions>()(
           progress: 0
         },
         notifications: [],
-
 
         // Actions - 植物相关
         setPlants: (plants: Plant[]) => set({ plants }),
@@ -139,7 +83,7 @@ export const useAppStore = create<AppStateType & AppActions>()(
         })),
 
         // Actions - 通知相关
-        addNotification: (notification: Omit<AppStateType['notifications'][0], 'id' | 'createdAt'>) => set((state) => ({
+        addNotification: (notification: Omit<AppState['notifications'][0], 'id' | 'createdAt'>) => set((state) => ({
           notifications: [
             {
               ...notification,

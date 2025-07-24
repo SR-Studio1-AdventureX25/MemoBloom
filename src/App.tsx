@@ -3,14 +3,22 @@ import LoadingProgress from '@/components/LoadingProgress'
 import HomePage from '@/pages/HomePage'
 import PWAInstallPrompt from '@/components/PWAInstallPrompt'
 import PWAUpdatePrompt from '@/components/PWAUpdatePrompt'
+import { createHashRouter, RouterProvider } from 'react-router'
+
+const router = createHashRouter([
+  {
+    path: '/',
+    element: <HomePage />
+  }
+]);
 
 function App() {
   const { isAppReady } = useAppInitialization()
 
   return (
     <>
-      {/* 主屏幕始终渲染 */}
-      <HomePage />
+      {/* 路由提供者 */}
+      <RouterProvider router={router}></RouterProvider>
       
       {/* PWA安装提示 */}
       <PWAInstallPrompt />
