@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, useMemo } from 'react'
+import { useNavigate } from 'react-router'
 import { useAppStore } from '@/store'
 import { apiService } from '@/services/api'
-import type { Plant } from '@/types/plant'
 import VideoBackground from '@/components/VideoBackground'
 import MicrophoneButton from '@/components/MicrophoneButton'
 
@@ -15,35 +15,33 @@ const OFFLINE_NOTIFICATION = {
 }
 
 export default function HomePage() {
-  const { plants, currentPlantId, setPlants, setCurrentPlantId, isOnline, addNotification } = useAppStore()
+  const { plants, currentPlantId, setPlants, isOnline, addNotification } = useAppStore()
   const [isLoading, setIsLoading] = useState(true)
+  const navigate = useNavigate()
 
   // 计算当前植物 - 使用 useMemo 优化性能
   const currentPlant = useMemo(() => {
     return currentPlantId ? plants.find(p => p.id === currentPlantId) : null
   }, [currentPlantId, plants])
 
-  // 设置当前植物ID（如果需要的话）
-  const ensureCurrentPlant = useCallback((plantsData: Plant[]) => {
-    if (plantsData.length > 0) {
-      // 如果没有当前植物ID或当前植物ID对应的植物不存在，使用第一个植物
-      if (!currentPlantId || !plantsData.find(p => p.id === currentPlantId)) {
-        setCurrentPlantId(plantsData[0].id)
-      }
+  // 检查当前植物是否存在，如果不存在就跳转到创建页面
+  const checkCurrentPlant = useCallback(() => {
+    if (plants.length > 0 && (!currentPlantId || !plants.find(p => p.id === currentPlantId))) {
+      // 如果有植物但没有选择或选择的植物不存在，跳转到创建页面
+      navigate('/createplant', { replace: true })
+      return false
     }
-  }, [currentPlantId, setCurrentPlantId])
+    return true
+  }, [plants, currentPlantId, navigate])
 
   // 统一的植物数据获取函数
-  const fetchPlants = useCallback(async (shouldEnsureCurrentPlant = false) => {
+  const fetchPlants = useCallback(async () => {
     try {
       const response = await apiService.plants.getAll()
       const serverPlants = response.data
 
       if (serverPlants && serverPlants.length > 0) {
         setPlants(serverPlants)
-        if (shouldEnsureCurrentPlant) {
-          ensureCurrentPlant(serverPlants)
-        }
         return serverPlants
       }
       return []
@@ -51,7 +49,7 @@ export default function HomePage() {
       console.error('获取植物数据失败:', error)
       throw error
     }
-  }, [setPlants, ensureCurrentPlant])
+  }, [setPlants])
 
   // 处理离线且无本地数据的情况
   const handleOfflineWithNoData = useCallback(() => {
@@ -60,23 +58,27 @@ export default function HomePage() {
 
   // 处理本地数据存在的情况
   const handleLocalData = useCallback(async () => {
-    ensureCurrentPlant(plants)
+    // 检查当前植物是否存在，如果不存在就跳转
+    if (!checkCurrentPlant()) {
+      return
+    }
+    
     setIsLoading(false)
     
     // 如果在线，尝试同步最新数据
     if (isOnline) {
       try {
-        await fetchPlants(false) // 仅同步数据，不改变当前植物选择
+        await fetchPlants() // 仅同步数据
       } catch (error) {
         console.error('同步植物数据失败:', error)
       }
     }
-  }, [plants, isOnline, ensureCurrentPlant, fetchPlants])
+  }, [checkCurrentPlant, isOnline, fetchPlants])
 
   // 处理在线且无本地数据的情况
   const handleOnlineWithNoData = useCallback(async () => {
     try {
-      await fetchPlants(true) // 获取数据并设置当前植物
+      await fetchPlants() // 获取数据
       // 注意：如果服务器上没有植物，路由会自动处理跳转到创建页面
     } catch {
       // 网络错误时，路由会自动处理跳转
@@ -125,7 +127,7 @@ export default function HomePage() {
     
     // 刷新植物数据
     if (success && isOnline && currentPlant) {
-      fetchPlants(false).catch(error => {
+      fetchPlants().catch(error => {
         console.error('刷新植物数据失败:', error)
       })
     }
