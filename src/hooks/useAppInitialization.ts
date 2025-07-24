@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useAppStore } from '@/store'
 import { pwaService } from '@/services/pwa'
 import { resourceCacheService } from '@/services/resourceCache'
@@ -41,7 +41,7 @@ export const useAppInitialization = () => {
     }, APP_CONFIG.COMPLETION_DELAY)
   }
 
-  const handleInitError = (error: Error) => {
+  const handleInitError = useCallback((error: Error) => {
     console.error('应用初始化失败:', error)
     const errorMessage = '资源加载失败，使用离线模式'
     
@@ -53,9 +53,9 @@ export const useAppInitialization = () => {
       progress: 100, 
       error: errorMessage
     })
-  }
+  }, [setResourceCache])
 
-  const initializeApp = async () => {
+  const initializeApp = useCallback(async () => {
     if (hasInitialized.current) return
     hasInitialized.current = true
 
@@ -85,7 +85,7 @@ export const useAppInitialization = () => {
     } catch (error) {
       handleInitError(error as Error)
     }
-  }
+  }, [setResourceCache, handleInitError])
 
   // 监听资源加载完成，自动设置应用准备状态
   useEffect(() => {
@@ -104,7 +104,7 @@ export const useAppInitialization = () => {
         clearTimeout(forceReadyTimeoutRef.current)
       }
     }
-  }, []) // 移除setResourceCache依赖，因为它会导致无限循环
+  }, [initializeApp]) // 移除setResourceCache依赖，因为它会导致无限循环
 
   return {
     isAppReady: state.isAppReady,

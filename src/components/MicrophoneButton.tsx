@@ -80,57 +80,8 @@ export default function MicrophoneButton({
     }
   }, [permissionGranted, addNotification])
 
-  // 停止录音
-  const stopRecording = useCallback(async () => {
-    if (!isRecording) return
-
-    // 清理计时器
-    if (durationIntervalRef.current) {
-      clearInterval(durationIntervalRef.current)
-      durationIntervalRef.current = null
-    }
-
-    setIsRecording(false)
-    setRecordingDuration(0)
-
-    const result = await audioRecorderService.stopRecording()
-    if (result.success && result.audioBlob) {
-      await handleWateringSubmission(result.audioBlob)
-    } else {
-      addNotification({
-        title: '录音失败',
-        message: result.error || '录音处理失败',
-        type: 'error',
-        read: false
-      })
-      onWateringComplete(false, result.error)
-    }
-  }, [isRecording, onWateringComplete, addNotification])
-
-  // 取消录音
-  const cancelRecording = useCallback(() => {
-    if (!isRecording) return
-
-    // 清理计时器
-    if (durationIntervalRef.current) {
-      clearInterval(durationIntervalRef.current)
-      durationIntervalRef.current = null
-    }
-
-    setIsRecording(false)
-    setRecordingDuration(0)
-    audioRecorderService.cancelRecording()
-
-    addNotification({
-      title: '录音已取消',
-      message: '你可以重新尝试录音',
-      type: 'info',
-      read: false
-    })
-  }, [isRecording, addNotification])
-
   // 处理浇水提交
-  const handleWateringSubmission = async (audioBlob: Blob) => {
+  const handleWateringSubmission = useCallback(async (audioBlob: Blob) => {
     setIsProcessing(true)
 
     try {
@@ -196,7 +147,56 @@ export default function MicrophoneButton({
     } finally {
       setIsProcessing(false)
     }
-  }
+  }, [isOnline, plantId, currentGrowthValue, addToOfflineQueue, addNotification, onWateringComplete])
+
+  // 停止录音
+  const stopRecording = useCallback(async () => {
+    if (!isRecording) return
+
+    // 清理计时器
+    if (durationIntervalRef.current) {
+      clearInterval(durationIntervalRef.current)
+      durationIntervalRef.current = null
+    }
+
+    setIsRecording(false)
+    setRecordingDuration(0)
+
+    const result = await audioRecorderService.stopRecording()
+    if (result.success && result.audioBlob) {
+      await handleWateringSubmission(result.audioBlob)
+    } else {
+      addNotification({
+        title: '录音失败',
+        message: result.error || '录音处理失败',
+        type: 'error',
+        read: false
+      })
+      onWateringComplete(false, result.error)
+    }
+  }, [isRecording, handleWateringSubmission, addNotification, onWateringComplete])
+
+  // 取消录音
+  const cancelRecording = useCallback(() => {
+    if (!isRecording) return
+
+    // 清理计时器
+    if (durationIntervalRef.current) {
+      clearInterval(durationIntervalRef.current)
+      durationIntervalRef.current = null
+    }
+
+    setIsRecording(false)
+    setRecordingDuration(0)
+    audioRecorderService.cancelRecording()
+
+    addNotification({
+      title: '录音已取消',
+      message: '你可以重新尝试录音',
+      type: 'info',
+      read: false
+    })
+  }, [isRecording, addNotification])
 
   // 触摸开始
   const handleTouchStart = useCallback((e: React.TouchEvent) => {

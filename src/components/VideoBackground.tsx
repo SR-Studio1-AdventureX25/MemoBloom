@@ -16,7 +16,7 @@ export default function VideoBackground() {
         resourceCacheService.revokeObjectURL(videoUrl)
       }
     }
-  }, [])
+  }, [videoUrl])
 
   const loadCachedVideo = async () => {
     try {

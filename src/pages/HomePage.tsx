@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useAppStore } from '@/store'
 import { apiService } from '@/services/api'
 import type { Plant } from '@/types'
@@ -11,12 +11,26 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [showCreatePlant, setShowCreatePlant] = useState(false)
 
-  // 检查植物状态
-  useEffect(() => {
-    checkPlantStatus()
-  }, [])
+  // 同步植物数据
+  const syncPlantData = useCallback(async () => {
+    try {
+      const response = await apiService.plants.getAll()
+      const serverPlants = response.data
 
-  const checkPlantStatus = async () => {
+      if (serverPlants && serverPlants.length > 0) {
+        setPlants(serverPlants)
+        // 更新当前植物数据
+        const updatedCurrentPlant = serverPlants.find(p => p.id === currentPlant?.id)
+        if (updatedCurrentPlant) {
+          setCurrentPlant(updatedCurrentPlant)
+        }
+      }
+    } catch (error) {
+      console.error('同步植物数据失败:', error)
+    }
+  }, [setPlants, setCurrentPlant, currentPlant?.id])
+
+  const checkPlantStatus = useCallback(async () => {
     try {
       setIsLoading(true)
 
@@ -66,26 +80,12 @@ export default function HomePage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [plants, setCurrentPlant, isOnline, syncPlantData, setPlants, addNotification])
 
-  // 同步植物数据
-  const syncPlantData = async () => {
-    try {
-      const response = await apiService.plants.getAll()
-      const serverPlants = response.data
-
-      if (serverPlants && serverPlants.length > 0) {
-        setPlants(serverPlants)
-        // 更新当前植物数据
-        const updatedCurrentPlant = serverPlants.find(p => p.id === currentPlant?.id)
-        if (updatedCurrentPlant) {
-          setCurrentPlant(updatedCurrentPlant)
-        }
-      }
-    } catch (error) {
-      console.error('同步植物数据失败:', error)
-    }
-  }
+  // 检查植物状态
+  useEffect(() => {
+    checkPlantStatus()
+  }, [checkPlantStatus])
 
   // 植物创建成功回调
   const handlePlantCreated = (newPlant: Plant) => {
