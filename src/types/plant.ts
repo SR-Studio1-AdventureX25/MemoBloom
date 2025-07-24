@@ -16,10 +16,6 @@ export interface Plant {
 // 植物品种常量
 export const PlantVariety = {
   SUNFLOWER: 'sunflower',         // 向日葵
-  ROSE: 'rose',                   // 玫瑰
-  LAVENDER: 'lavender',           // 薰衣草
-  BAMBOO: 'bamboo',               // 竹子
-  SAKURA: 'sakura',               // 樱花
 } as const
 
 export type PlantVarietyType = typeof PlantVariety[keyof typeof PlantVariety]
@@ -28,8 +24,7 @@ export type PlantVarietyType = typeof PlantVariety[keyof typeof PlantVariety]
 export const PlantGrowthStage = {
   SEED: 'seed',                   // 种子
   SPROUT: 'sprout',               // 发芽
-  YOUNG: 'young',                 // 幼苗
-  MATURE: 'mature',               // 成熟
+  MATURE: 'mature',               // 含苞
   FLOWERING: 'flowering',         // 开花
   FRUITING: 'fruiting',           // 结果
 } as const

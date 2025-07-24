@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useMemo } from 'react'
+import { useCallback, useEffect, useState, useMemo, memo } from 'react'
 import { useNavigate } from 'react-router'
 import { useAppStore } from '@/store'
 import { apiService } from '@/services/api'
@@ -13,6 +13,74 @@ const OFFLINE_NOTIFICATION = {
   type: 'warning' as const,
   read: false
 }
+
+// Loading 状态组件
+const LoadingState = memo(() => (
+  <div className="min-h-screen bg-black flex items-center justify-center">
+    <div className="text-center">
+      <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+      <p className="text-white">{LOADING_TEXT}</p>
+    </div>
+  </div>
+))
+
+LoadingState.displayName = 'LoadingState'
+
+// 错误状态组件
+interface ErrorStateProps {
+  onReload: () => void
+}
+
+const ErrorState = memo<ErrorStateProps>(({ onReload }) => (
+  <div className="min-h-screen bg-black flex items-center justify-center">
+    <div className="text-center text-white">
+      <h2 className="text-xl font-semibold mb-2">出现了问题</h2>
+      <p className="text-white/60 mb-4">无法加载植物数据</p>
+      <button
+        onClick={onReload}
+        className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded-lg font-medium transition-colors"
+      >
+        重新加载
+      </button>
+    </div>
+  </div>
+))
+
+ErrorState.displayName = 'ErrorState'
+
+// NFT 状态指示器组件
+const NFTIndicator = memo(() => (
+  <div className="absolute top-20 right-4 z-10">
+    <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-medium shadow-lg">
+      NFT已铸造
+    </div>
+  </div>
+))
+
+NFTIndicator.displayName = 'NFTIndicator'
+
+// 麦克风按钮容器组件
+interface MicrophoneContainerProps {
+  plantId: string
+  currentGrowthValue: number
+  onWateringComplete: (success: boolean, message?: string) => void
+}
+
+const MicrophoneContainer = memo<MicrophoneContainerProps>(({ 
+  plantId, 
+  currentGrowthValue, 
+  onWateringComplete 
+}) => (
+  <div className="absolute bottom-0 left-0 right-0 z-20 p-6 pb-8">
+    <MicrophoneButton 
+      plantId={plantId}
+      currentGrowthValue={currentGrowthValue}
+      onWateringComplete={onWateringComplete}
+    />
+  </div>
+))
+
+MicrophoneContainer.displayName = 'MicrophoneContainer'
 
 export default function HomePage() {
   const { plants, currentPlantId, setPlants, isOnline, addNotification } = useAppStore()
@@ -112,8 +180,8 @@ export default function HomePage() {
     checkPlantStatus()
   }, [checkPlantStatus])
 
-  // 浇水完成回调 - 简化为普通函数
-  const handleWateringComplete = (success: boolean, message?: string) => {
+  // 浇水完成回调 - 使用 useCallback 优化
+  const handleWateringComplete = useCallback((success: boolean, message?: string) => {
     const notificationTitle = success ? '浇水成功' : '浇水失败'
     const notificationMessage = message || (success ? '你的植物很开心！' : '请稍后重试')
     const notificationType = success ? 'success' : 'error'
@@ -131,139 +199,45 @@ export default function HomePage() {
         console.error('刷新植物数据失败:', error)
       })
     }
-  }
+  }, [addNotification, isOnline, currentPlant, fetchPlants])
 
-  // 渲染加载状态
-  const renderLoadingState = () => (
-    <div className="min-h-screen bg-black flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-white">{LOADING_TEXT}</p>
-      </div>
-    </div>
-  )
-
-  // 渲染植物信息头部
-  const renderPlantHeader = () => (
-    <div className="absolute top-0 left-0 right-0 z-10 p-4 bg-gradient-to-b from-black/50 to-transparent">
-      <div className="flex items-center justify-between">
-        {/* 植物信息 */}
-        <div className="text-white">
-          <h2 className="text-lg font-semibold">{currentPlant!.variety}</h2>
-          <p className="text-sm text-white/80">
-            成长阶段: {currentPlant!.currentGrowthStage}
-          </p>
-          <p className="text-sm text-white/80">
-            成长值: {currentPlant!.growthValue}
-          </p>
-        </div>
-        
-        {/* 在线状态指示器 */}
-        <div className="flex items-center space-x-2">
-          <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-400' : 'bg-red-400'}`} />
-          <span className="text-white/80 text-sm">
-            {isOnline ? '在线' : '离线'}
-          </span>
-        </div>
-      </div>
-    </div>
-  )
-
-  // 渲染植物详情
-  const renderPlantDetails = () => (
-    <div className="absolute bottom-20 left-0 right-0 z-10 p-4">
-      <div className="bg-black/30 backdrop-blur-sm rounded-lg p-4 text-white">
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-white/60">上次浇水:</span>
-            <p className="font-medium">
-              {currentPlant!.lastWateringTime ? 
-                new Date(currentPlant!.lastWateringTime).toLocaleDateString() : 
-                '还未浇水'
-              }
-            </p>
-          </div>
-          <div>
-            <span className="text-white/60">近期状况:</span>
-            <p className="font-medium">
-              {currentPlant!.userRecentStatus || '暂无记录'}
-            </p>
-          </div>
-        </div>
-        
-        {/* 个性标签 */}
-        {currentPlant!.personalityTags && currentPlant!.personalityTags.length > 0 && (
-          <div className="mt-3">
-            <span className="text-white/60 text-sm">个性标签:</span>
-            <div className="flex flex-wrap gap-2 mt-1">
-              {currentPlant!.personalityTags.map((tag, index) => (
-                <span
-                  key={index}
-                  className="px-2 py-1 bg-white/20 rounded-full text-xs"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-
-  // 渲染错误状态
-  const renderErrorState = () => (
-    <div className="min-h-screen bg-black flex items-center justify-center">
-      <div className="text-center text-white">
-        <h2 className="text-xl font-semibold mb-2">出现了问题</h2>
-        <p className="text-white/60 mb-4">无法加载植物数据</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded-lg font-medium transition-colors"
-        >
-          重新加载
-        </button>
-      </div>
-    </div>
-  )
+  // 重新加载回调
+  const handleReload = useCallback(() => {
+    window.location.reload()
+  }, [])
 
   // 主渲染逻辑
   if (isLoading) {
-    return renderLoadingState()
+    return <LoadingState />
   }
 
   if (currentPlant) {
     return (
       <div className="relative min-h-screen overflow-hidden">
-        {/* 视频背景 */}
-        <VideoBackground />
-        
-        {/* 植物信息覆盖层 */}
-        {renderPlantHeader()}
-
-        {/* 底部植物详情 */}
-        {renderPlantDetails()}
-
-        {/* 麦克风按钮 */}
-        <div className="absolute bottom-0 left-0 right-0 z-20 p-6 pb-8">
-          <MicrophoneButton 
-            plantId={currentPlant.id}
-            currentGrowthValue={currentPlant.growthValue}
-            onWateringComplete={handleWateringComplete}
-          />
+        {/* 在线状态指示器 */}
+        <div className="absolute top-4 left-4 z-10 flex items-center space-x-2 bg-black/20 backdrop-blur-sm rounded-full px-3 py-2">
+          <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-400' : 'bg-red-400'}`} />
+          <span className="text-white/80 text-sm">
+            {isOnline ? '在线' : '离线'}
+          </span>
         </div>
 
+        {/* 视频背景 */}
+        <VideoBackground />
+
+
+        {/* 麦克风按钮 */}
+        <MicrophoneContainer 
+          plantId={currentPlant.id}
+          currentGrowthValue={currentPlant.growthValue}
+          onWateringComplete={handleWateringComplete}
+        />
+
         {/* NFT状态指示器 */}
-        {currentPlant.nftMinted && (
-          <div className="absolute top-20 right-4 z-10">
-            <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-medium shadow-lg">
-              NFT已铸造
-            </div>
-          </div>
-        )}
+        {currentPlant.nftMinted && <NFTIndicator />}
       </div>
     )
   }
 
-  return renderErrorState()
+  return <ErrorState onReload={handleReload} />
 }
