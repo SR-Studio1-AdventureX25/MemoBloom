@@ -1,35 +1,73 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useAppStore } from '@/store'
 
 interface LoadingProgressProps {
   onComplete?: () => void
+  // Sigmoid 函数参数
+  simulationSpeed?: number // 模拟速度系数，默认 1.0
+  steepness?: number // 曲线陡峭程度，默认 6
+  midpoint?: number // 中点位置（0-1），默认 0.5
 }
 
-export default function LoadingProgress({ onComplete }: LoadingProgressProps) {
+export default function LoadingProgress({ 
+  onComplete,
+  simulationSpeed = 1.0,
+  steepness = 6,
+  midpoint = 0.5
+}: LoadingProgressProps) {
   const { resourceCache } = useAppStore()
   const [displayProgress, setDisplayProgress] = useState(0)
   const [isComplete, setIsComplete] = useState(false)
 
-  // 使用动画让进度条更平滑
+  // Sigmoid 函数：生成 S 型曲线
+  const sigmoidTransform = useCallback((progress: number): number => {
+    if (progress <= 0) return 0
+    if (progress >= 100) return 100
+    
+    // 将进度 (0-100) 映射到 (0-1)
+    const t = progress / 100
+    
+    // 应用 Sigmoid 变换
+    const x = (t - midpoint) * steepness
+    const sigmoid = 1 / (1 + Math.exp(-x))
+    
+    // 标准化到 0-100 范围
+    const minValue = 1 / (1 + Math.exp(midpoint * steepness))
+    const maxValue = 1 / (1 + Math.exp((midpoint - 1) * steepness))
+    
+    const normalized = (sigmoid - minValue) / (maxValue - minValue)
+    return Math.max(0, Math.min(100, normalized * 100))
+  }, [steepness, midpoint])
+
+  // 使用 Sigmoid 函数平滑显示进度
   useEffect(() => {
     const targetProgress = resourceCache.progress
     const currentProgress = displayProgress
     
-    if (targetProgress > currentProgress) {
-      const increment = Math.max(1, Math.ceil((targetProgress - currentProgress) / 10))
+    if (Math.abs(targetProgress - currentProgress) > 0.1) {
+      // 使用 Sigmoid 变换让进度更平滑
+      const sigmoidTarget = sigmoidTransform(targetProgress)
+      const sigmoidCurrent = sigmoidTransform(currentProgress)
+      
+      // 计算增量，让动画更平滑
+      const diff = sigmoidTarget - sigmoidCurrent
+      const increment = diff * 0.1 * simulationSpeed // 调整平滑速度
+      
       const timer = setTimeout(() => {
-        setDisplayProgress(prev => Math.min(targetProgress, prev + increment))
-      }, 50)
+        setDisplayProgress(prev => {
+          const newProgress = prev + increment
+          return Math.max(0, Math.min(100, newProgress))
+        })
+      }, 16) // 约60fps
       
       return () => clearTimeout(timer)
     }
-  }, [resourceCache.progress, displayProgress])
+  }, [resourceCache.progress, displayProgress, simulationSpeed, sigmoidTransform])
 
   // 检查完成状态
   useEffect(() => {
     if (resourceCache.isLoaded && displayProgress >= 100 && !isComplete) {
       setIsComplete(true)
-      // 延迟一点时间让用户看到100%
       const timer = setTimeout(() => {
         onComplete?.()
       }, 500)
@@ -92,7 +130,7 @@ export default function LoadingProgress({ onComplete }: LoadingProgressProps) {
               {resourceCache.error ? '加载出错' : '加载中'}
             </span>
             <span className="text-white font-mono">
-              {displayProgress}%
+              {Math.round(displayProgress)}%
             </span>
           </div>
 

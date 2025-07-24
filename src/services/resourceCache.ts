@@ -20,6 +20,7 @@ interface CacheItem {
 export class ResourceCacheService {
   private static instance: ResourceCacheService
   private cache: Map<string, CacheItem> = new Map()
+  private objectURLCache: Map<string, string> = new Map()
   private cacheStorage: Cache | null = null
   private readonly CACHE_NAME = 'memobloom-resources-v1'
 
@@ -115,6 +116,13 @@ export class ResourceCacheService {
       if (await this.isResourceCached(resource.key)) {
         console.log(`Resource ${resource.key} already cached`)
         return
+      }
+
+      // 如果资源正在被重新缓存，先清理旧的 Object URL
+      if (this.objectURLCache.has(resource.key)) {
+        const oldObjectURL = this.objectURLCache.get(resource.key)!
+        URL.revokeObjectURL(oldObjectURL)
+        this.objectURLCache.delete(resource.key)
       }
 
       // 下载资源
@@ -213,9 +221,17 @@ export class ResourceCacheService {
 
   // 获取缓存的资源URL
   async getCachedResourceURL(key: string): Promise<string | null> {
+    // 检查是否已有缓存的 Object URL
+    if (this.objectURLCache.has(key)) {
+      return this.objectURLCache.get(key)!
+    }
+
+    // 获取 blob 并创建 Object URL
     const blob = await this.getCachedResource(key)
     if (blob) {
-      return URL.createObjectURL(blob)
+      const objectURL = URL.createObjectURL(blob)
+      this.objectURLCache.set(key, objectURL)
+      return objectURL
     }
     return null
   }
@@ -254,6 +270,9 @@ export class ResourceCacheService {
   // 清理缓存
   async clearCache(): Promise<void> {
     try {
+      // 清理 Object URLs
+      this.clearObjectURLs()
+
       // 清理内存缓存
       this.cache.clear()
 
@@ -271,6 +290,15 @@ export class ResourceCacheService {
     } catch (error) {
       console.error('Failed to clear cache:', error)
     }
+  }
+
+  // 清理所有 Object URLs
+  private clearObjectURLs(): void {
+    this.objectURLCache.forEach(url => {
+      URL.revokeObjectURL(url)
+    })
+    this.objectURLCache.clear()
+    console.log('All Object URLs revoked')
   }
 
   // 释放对象URL
