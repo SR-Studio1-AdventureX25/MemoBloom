@@ -1,8 +1,30 @@
 import { useAppStore } from '@/store'
 
+// PWA 相关类型定义
+interface BeforeInstallPromptEvent extends Event {
+  readonly platforms: string[]
+  readonly userChoice: Promise<{
+    outcome: 'accepted' | 'dismissed'
+    platform: string
+  }>
+  prompt(): Promise<void>
+}
+
+declare global {
+  interface WindowEventMap {
+    beforeinstallprompt: BeforeInstallPromptEvent
+  }
+  
+  interface Navigator {
+    standalone?: boolean
+  }
+}
+
 export class PWAService {
   private static instance: PWAService
   private registration: ServiceWorkerRegistration | null = null
+  private deferredPrompt: BeforeInstallPromptEvent | null = null
+  private installPromptListeners: Array<(canInstall: boolean) => void> = []
   
   public static getInstance(): PWAService {
     if (!PWAService.instance) {
@@ -13,6 +35,9 @@ export class PWAService {
 
   // 初始化PWA服务
   async init() {
+    // 设置PWA安装监听
+    this.setupInstallPrompt()
+    
     if ('serviceWorker' in navigator) {
       try {
         this.registration = await navigator.serviceWorker.ready
@@ -88,8 +113,9 @@ export class PWAService {
 
     // 监听网络状态变化，在重新连接时触发同步
     navigator.serviceWorker.addEventListener('message', (event) => {
-      if (event.data && event.data.type === 'BACKGROUND_SYNC') {
-        console.log('Background sync completed:', event.data.payload)
+      const messageData = event.data as { type: string; payload?: unknown }
+      if (messageData && messageData.type === 'BACKGROUND_SYNC') {
+        console.log('Background sync completed:', messageData.payload)
         
         // 更新本地状态
         const { addNotification } = useAppStore.getState()
@@ -153,6 +179,130 @@ export class PWAService {
       
     } catch (error) {
       console.error('Failed to send subscription to server:', error)
+    }
+  }
+
+  // ===== PWA 安装相关方法 =====
+
+  // 设置PWA安装提示监听
+  private setupInstallPrompt() {
+    // 监听beforeinstallprompt事件
+    window.addEventListener('beforeinstallprompt', (e) => {
+      console.log('PWA install prompt available')
+      // 阻止默认的安装提示
+      e.preventDefault()
+      // 保存事件以供后续使用
+      this.deferredPrompt = e
+      // 通知所有监听器可以安装
+      this.notifyInstallPromptListeners(true)
+    })
+
+    // 监听PWA安装完成事件
+    window.addEventListener('appinstalled', () => {
+      console.log('PWA was installed')
+      // 清除缓存的提示事件
+      this.deferredPrompt = null
+      // 通知监听器已安装
+      this.notifyInstallPromptListeners(false)
+    })
+  }
+
+  // 检测是否在PWA模式下运行
+  isPWAMode(): boolean {
+    // 方法1: 检查display-mode媒体查询
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      return true
+    }
+
+    // 方法2: iOS Safari检查
+    if (window.navigator.standalone === true) {
+      return true
+    }
+
+    // 方法3: 检查referrer（从桌面启动时通常为空）
+    if (document.referrer === "" && window.location.href !== window.location.origin + "/") {
+      return true
+    }
+
+    return false
+  }
+
+  // 检测是否可以安装PWA
+  canInstallPWA(): boolean {
+    // 如果已经在PWA模式下，则不需要安装
+    if (this.isPWAMode()) {
+      return false
+    }
+
+    // 如果有缓存的安装提示事件，则可以安装
+    return this.deferredPrompt !== null
+  }
+
+  // 执行PWA安装
+  async installPWA(): Promise<{ success: boolean; outcome?: string }> {
+    if (!this.deferredPrompt) {
+      console.log('No install prompt available')
+      return { success: false }
+    }
+
+    try {
+      // 显示安装提示
+      await this.deferredPrompt.prompt()
+      
+      // 等待用户响应
+      const choiceResult = await this.deferredPrompt.userChoice
+      
+      console.log(`PWA install choice: ${choiceResult.outcome}`)
+      
+      if (choiceResult.outcome === 'accepted') {
+        // 用户接受安装
+        this.deferredPrompt = null
+        this.notifyInstallPromptListeners(false)
+        return { success: true, outcome: 'accepted' }
+      } else {
+        // 用户拒绝安装
+        return { success: false, outcome: 'dismissed' }
+      }
+      
+    } catch (error) {
+      console.error('PWA install failed:', error)
+      return { success: false }
+    }
+  }
+
+  // 添加安装提示监听器
+  onInstallPromptChange(callback: (canInstall: boolean) => void) {
+    this.installPromptListeners.push(callback)
+    
+    // 立即调用一次以获取当前状态
+    callback(this.canInstallPWA())
+    
+    // 返回取消监听的函数
+    return () => {
+      const index = this.installPromptListeners.indexOf(callback)
+      if (index > -1) {
+        this.installPromptListeners.splice(index, 1)
+      }
+    }
+  }
+
+  // 通知所有安装提示监听器
+  private notifyInstallPromptListeners(canInstall: boolean) {
+    this.installPromptListeners.forEach(callback => {
+      try {
+        callback(canInstall)
+      } catch (error) {
+        console.error('Error in install prompt listener:', error)
+      }
+    })
+  }
+
+  // 获取PWA安装状态信息
+  getInstallStatus() {
+    return {
+      isPWAMode: this.isPWAMode(),
+      canInstall: this.canInstallPWA(),
+      hasPrompt: this.deferredPrompt !== null
     }
   }
 }
