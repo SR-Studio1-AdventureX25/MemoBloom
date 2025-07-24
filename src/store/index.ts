@@ -9,8 +9,6 @@ import type {
 } from '@/types'
 
 interface AppActions {
-  // 用户相关
-  setUser: (user: AppStateType['user']) => void
   
   // 植物相关
   setPlants: (plants: Plant[]) => void
@@ -60,8 +58,6 @@ export const useAppStore = create<AppStateType & AppActions>()(
         },
         notifications: [],
 
-        // Actions - 用户相关
-        setUser: (user: AppStateType['user']) => set({ user }),
 
         // Actions - 植物相关
         setPlants: (plants: Plant[]) => set({ plants }),
@@ -145,7 +141,6 @@ export const useAppStore = create<AppStateType & AppActions>()(
       {
         name: 'memobloom-storage',
         partialize: (state) => ({
-          user: state.user,
           plants: state.plants,
           currentPlant: state.currentPlant,
           wateringRecords: state.wateringRecords,

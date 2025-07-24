@@ -74,12 +74,6 @@ export interface ResourceCacheStatus {
 
 // 应用状态类型
 export interface AppState {
-  user: {
-    id: string
-    name: string
-    level: number
-    experience: number
-  } | null
   plants: Plant[]                 // 植物列表
   currentPlant: Plant | null      // 当前植物
   wateringRecords: WateringRecord[] // 浇水记录
