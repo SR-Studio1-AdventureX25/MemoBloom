@@ -73,6 +73,13 @@ export class PWAService {
 
   // 设置推送通知
   async setupPushNotifications() {
+    // 对于demo应用，暂时禁用推送通知
+    const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
+    if (!vapidKey) {
+      console.log('Push notifications disabled: VAPID key not configured')
+      return
+    }
+
     if (!('Notification' in window) || !this.registration) {
       console.log('Push messaging is not supported')
       return
@@ -89,9 +96,7 @@ export class PWAService {
       // 订阅推送服务
       const subscription = await this.registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: this.urlBase64ToUint8Array(
-          import.meta.env.VITE_VAPID_PUBLIC_KEY || ''
-        )
+        applicationServerKey: this.urlBase64ToUint8Array(vapidKey)
       })
 
       console.log('Push subscription created:', subscription)
@@ -144,7 +149,11 @@ export class PWAService {
   async registerBackgroundSync(tag: string) {
     if (this.registration && 'sync' in this.registration) {
       try {
-        await this.registration.sync.register(tag)
+        // TypeScript中ServiceWorkerRegistration没有sync属性定义，但实际上存在
+        const syncManager = (this.registration as ServiceWorkerRegistration & { 
+          sync: { register: (tag: string) => Promise<void> } 
+        }).sync
+        await syncManager.register(tag)
         console.log(`Background sync registered: ${tag}`)
       } catch (error) {
         console.error('Background sync registration failed:', error)

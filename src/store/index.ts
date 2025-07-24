@@ -1,76 +1,129 @@
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
-
-interface AppState {
-  user: {
-    id: string
-    name: string
-    level: number
-    experience: number
-  } | null
-  plants: Array<{
-    id: string
-    name: string
-    type: string
-    level: number
-    health: number
-    happiness: number
-    waterLevel: number
-    lastWatered: Date
-    lastFertilized: Date
-  }>
-  isOnline: boolean
-  notifications: Array<{
-    id: string
-    title: string
-    message: string
-    type: 'info' | 'success' | 'warning' | 'error'
-    read: boolean
-    createdAt: Date
-  }>
-}
+import type { 
+  AppState as AppStateType, 
+  Plant, 
+  WateringRecord, 
+  OfflineWateringItem, 
+  ResourceCacheStatus 
+} from '@/types'
 
 interface AppActions {
-  setUser: (user: AppState['user']) => void
-  addPlant: (plant: AppState['plants'][0]) => void
-  updatePlant: (id: string, updates: Partial<AppState['plants'][0]>) => void
+  // 用户相关
+  setUser: (user: AppStateType['user']) => void
+  
+  // 植物相关
+  setPlants: (plants: Plant[]) => void
+  addPlant: (plant: Plant) => void
+  updatePlant: (id: string, updates: Partial<Plant>) => void
   removePlant: (id: string) => void
+  setCurrentPlant: (plant: Plant | null) => void
+  
+  // 浇水记录相关
+  setWateringRecords: (records: WateringRecord[]) => void
+  addWateringRecord: (record: WateringRecord) => void
+  updateWateringRecord: (id: string, updates: Partial<WateringRecord>) => void
+  
+  // 离线队列相关
+  addToOfflineQueue: (item: OfflineWateringItem) => void
+  removeFromOfflineQueue: (id: string) => void
+  updateOfflineQueueItem: (id: string, updates: Partial<OfflineWateringItem>) => void
+  clearOfflineQueue: () => void
+  
+  // 网络状态
   setOnlineStatus: (status: boolean) => void
-  addNotification: (notification: Omit<AppState['notifications'][0], 'id' | 'createdAt'>) => void
+  
+  // 资源缓存
+  setResourceCache: (status: ResourceCacheStatus) => void
+  updateResourceCacheProgress: (progress: number) => void
+  
+  // 通知相关
+  addNotification: (notification: Omit<AppStateType['notifications'][0], 'id' | 'createdAt'>) => void
   markNotificationAsRead: (id: string) => void
   clearNotifications: () => void
 }
 
-export const useAppStore = create<AppState & AppActions>()(
+export const useAppStore = create<AppStateType & AppActions>()(
   devtools(
     persist(
-      (set, get) => ({
-        // State
+      (set) => ({
+        // State - 初始状态
         user: null,
         plants: [],
+        currentPlant: null,
+        wateringRecords: [],
+        offlineWateringQueue: [],
         isOnline: true,
+        resourceCache: {
+          isLoaded: false,
+          progress: 0
+        },
         notifications: [],
 
-        // Actions
-        setUser: (user) => set({ user }),
+        // Actions - 用户相关
+        setUser: (user: AppStateType['user']) => set({ user }),
+
+        // Actions - 植物相关
+        setPlants: (plants: Plant[]) => set({ plants }),
         
-        addPlant: (plant) => set((state) => ({
+        addPlant: (plant: Plant) => set((state) => ({
           plants: [...state.plants, plant]
         })),
         
-        updatePlant: (id, updates) => set((state) => ({
+        updatePlant: (id: string, updates: Partial<Plant>) => set((state) => ({
           plants: state.plants.map(plant => 
             plant.id === id ? { ...plant, ...updates } : plant
           )
         })),
         
-        removePlant: (id) => set((state) => ({
+        removePlant: (id: string) => set((state) => ({
           plants: state.plants.filter(plant => plant.id !== id)
         })),
-        
-        setOnlineStatus: (status) => set({ isOnline: status }),
-        
-        addNotification: (notification) => set((state) => ({
+
+        setCurrentPlant: (plant: Plant | null) => set({ currentPlant: plant }),
+
+        // Actions - 浇水记录相关
+        setWateringRecords: (records: WateringRecord[]) => set({ wateringRecords: records }),
+
+        addWateringRecord: (record: WateringRecord) => set((state) => ({
+          wateringRecords: [...state.wateringRecords, record]
+        })),
+
+        updateWateringRecord: (id: string, updates: Partial<WateringRecord>) => set((state) => ({
+          wateringRecords: state.wateringRecords.map(record =>
+            record.id === id ? { ...record, ...updates } : record
+          )
+        })),
+
+        // Actions - 离线队列相关
+        addToOfflineQueue: (item: OfflineWateringItem) => set((state) => ({
+          offlineWateringQueue: [...state.offlineWateringQueue, item]
+        })),
+
+        removeFromOfflineQueue: (id: string) => set((state) => ({
+          offlineWateringQueue: state.offlineWateringQueue.filter(item => item.id !== id)
+        })),
+
+        updateOfflineQueueItem: (id: string, updates: Partial<OfflineWateringItem>) => set((state) => ({
+          offlineWateringQueue: state.offlineWateringQueue.map(item =>
+            item.id === id ? { ...item, ...updates } : item
+          )
+        })),
+
+        clearOfflineQueue: () => set({ offlineWateringQueue: [] }),
+
+        // Actions - 网络状态
+        setOnlineStatus: (status: boolean) => set({ isOnline: status }),
+
+        // Actions - 资源缓存
+        setResourceCache: (status: ResourceCacheStatus) => set({ resourceCache: status }),
+
+        updateResourceCacheProgress: (progress: number) => set((state) => ({
+          resourceCache: { ...state.resourceCache, progress }
+        })),
+
+        // Actions - 通知相关
+        addNotification: (notification: Omit<AppStateType['notifications'][0], 'id' | 'createdAt'>) => set((state) => ({
           notifications: [
             {
               ...notification,
@@ -81,7 +134,7 @@ export const useAppStore = create<AppState & AppActions>()(
           ]
         })),
         
-        markNotificationAsRead: (id) => set((state) => ({
+        markNotificationAsRead: (id: string) => set((state) => ({
           notifications: state.notifications.map(notification =>
             notification.id === id ? { ...notification, read: true } : notification
           )
@@ -94,6 +147,8 @@ export const useAppStore = create<AppState & AppActions>()(
         partialize: (state) => ({
           user: state.user,
           plants: state.plants,
+          currentPlant: state.currentPlant,
+          wateringRecords: state.wateringRecords,
           notifications: state.notifications
         })
       }
