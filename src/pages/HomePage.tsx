@@ -3,8 +3,8 @@ import { useAppStore } from '@/store'
 import { apiService } from '@/services/api'
 import type { Plant } from '@/types'
 import CreatePlant from './CreatePlant'
-import VideoBackground from './VideoBackground'
-import MicrophoneButton from './MicrophoneButton'
+import VideoBackground from '@/components/VideoBackground'
+import MicrophoneButton from '@/components/MicrophoneButton'
 
 export default function HomePage() {
   const { plants, currentPlant, setPlants, setCurrentPlant, isOnline, addNotification } = useAppStore()

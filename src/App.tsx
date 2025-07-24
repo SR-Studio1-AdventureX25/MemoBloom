@@ -3,7 +3,7 @@ import { useAppStore } from '@/store'
 import { pwaService } from '@/services/pwa'
 import { resourceCacheService } from '@/services/resourceCache'
 import LoadingProgress from '@/components/LoadingProgress'
-import HomePage from '@/components/HomePage'
+import HomePage from '@/pages/HomePage'
 import PWAInstallPrompt from '@/components/PWAInstallPrompt'
 import PWAUpdatePrompt from '@/components/PWAUpdatePrompt'
 
