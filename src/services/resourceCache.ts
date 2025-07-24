@@ -1,5 +1,14 @@
 import { useAppStore } from '@/store'
 
+// 获取资源缓存相关的 actions
+const getResourceCacheActions = () => {
+  const store = useAppStore.getState()
+  return {
+    setResourceCache: store.setResourceCache,
+    updateResourceCacheProgress: store.updateResourceCacheProgress
+  }
+}
+
 // 资源类型定义
 interface CacheableResource {
   url: string
@@ -66,7 +75,7 @@ export class ResourceCacheService {
 
   // 缓存所有资源
   async cacheAllResources(): Promise<void> {
-    const { updateResourceCacheProgress, setResourceCache } = useAppStore.getState()
+    const { updateResourceCacheProgress, setResourceCache } = getResourceCacheActions()
     
     try {
       // 重置进度
@@ -283,7 +292,7 @@ export class ResourceCacheService {
       }
 
       // 重置状态
-      const { setResourceCache } = useAppStore.getState()
+      const { setResourceCache } = getResourceCacheActions()
       setResourceCache({ isLoaded: false, progress: 0 })
 
       console.log('Cache cleared successfully')

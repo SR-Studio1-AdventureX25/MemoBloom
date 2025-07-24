@@ -1,5 +1,21 @@
 import { useAppStore } from '@/store'
 
+// 获取在线状态相关的 actions
+const getOnlineActions = () => {
+  const store = useAppStore.getState()
+  return {
+    setOnlineStatus: store.setOnlineStatus
+  }
+}
+
+// 获取通知相关的 actions
+const getNotificationActions = () => {
+  const store = useAppStore.getState()
+  return {
+    addNotification: store.addNotification
+  }
+}
+
 // PWA 相关类型定义
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[]
@@ -61,7 +77,8 @@ export class PWAService {
   // 设置在线/离线监听
   private setupOnlineOfflineListeners() {
     const updateOnlineStatus = () => {
-      useAppStore.getState().setOnlineStatus(navigator.onLine)
+      const { setOnlineStatus } = getOnlineActions()
+      setOnlineStatus(navigator.onLine)
     }
 
     window.addEventListener('online', updateOnlineStatus)
@@ -123,7 +140,7 @@ export class PWAService {
         console.log('Background sync completed:', messageData.payload)
         
         // 更新本地状态
-        const { addNotification } = useAppStore.getState()
+        const { addNotification } = getNotificationActions()
         addNotification({
           title: '数据同步完成',
           message: '您的数据已成功同步到云端',

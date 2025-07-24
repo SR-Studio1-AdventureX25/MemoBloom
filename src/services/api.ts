@@ -1,6 +1,22 @@
 import axios from 'axios'
 import { useAppStore } from '@/store'
 
+// 获取通知相关的 actions
+const getNotificationActions = () => {
+  const store = useAppStore.getState()
+  return {
+    addNotification: store.addNotification
+  }
+}
+
+// 获取在线状态相关的 actions
+const getOnlineActions = () => {
+  const store = useAppStore.getState()
+  return {
+    setOnlineStatus: store.setOnlineStatus
+  }
+}
+
 // 创建axios实例
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
@@ -16,7 +32,7 @@ api.interceptors.response.use(
     return response
   },
   (error) => {
-    const { addNotification } = useAppStore.getState()
+    const { addNotification } = getNotificationActions()
     
     if (error.response?.status >= 500) {
       // 处理服务器错误
@@ -28,7 +44,8 @@ api.interceptors.response.use(
       })
     } else if (!error.response) {
       // 处理网络错误
-      useAppStore.getState().setOnlineStatus(false)
+      const { setOnlineStatus } = getOnlineActions()
+      setOnlineStatus(false)
       addNotification({
         title: '网络连接中断',
         message: '已切换到离线模式',

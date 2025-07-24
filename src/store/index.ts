@@ -41,6 +41,22 @@ interface AppActions {
   clearNotifications: () => void
 }
 
+// Selector functions for specific actions
+export const useResourceCacheActions = () => useAppStore(
+  (state) => ({
+    setResourceCache: state.setResourceCache,
+    updateResourceCacheProgress: state.updateResourceCacheProgress
+  })
+)
+
+export const useNotificationActions = () => useAppStore(
+  (state) => ({ addNotification: state.addNotification })
+)
+
+export const useOnlineActions = () => useAppStore(
+  (state) => ({ setOnlineStatus: state.setOnlineStatus })
+)
+
 export const useAppStore = create<AppStateType & AppActions>()(
   devtools(
     persist(
