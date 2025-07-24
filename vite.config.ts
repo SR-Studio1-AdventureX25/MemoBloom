@@ -13,6 +13,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,mp4,webm}'],
+        globIgnores: ['**/plantsVideo/**'], // 排除植物视频，由 ResourceCacheService 管理
         maximumFileSizeToCacheInBytes: 50 * 1024 * 1024, // 50MB
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/],
