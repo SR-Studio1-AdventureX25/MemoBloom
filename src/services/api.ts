@@ -206,15 +206,7 @@ export const apiService = {
           'Content-Type': 'multipart/form-data',
         },
       })
-    },
-
-    // 获取最后同步时间
-    getLastSync: (): Promise<{ data: { lastSyncTime: string } }> => 
-      api.get('/sync/last'),
-
-    // 获取增量数据（自上次同步后的数据）
-    getIncrementalData: (lastSyncTime: string): Promise<{ data: { plants: Plant[]; wateringRecords: WateringRecord[] } }> => 
-      api.get(`/sync/incremental?since=${encodeURIComponent(lastSyncTime)}`),
+    }
   }
 }
 
