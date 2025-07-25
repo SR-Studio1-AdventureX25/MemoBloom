@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, useMemo, memo } from 'react'
 import { useNavigate } from 'react-router'
 import { useAppStore } from '@/store'
-import { apiService } from '@/services/api'
+// import { apiService } from '@/services/api'
 import VideoBackground from '@/components/VideoBackground'
 import MicrophoneButton from '@/components/MicrophoneButton'
 
@@ -180,19 +180,19 @@ export default function HomePage() {
 
   // 统一的植物数据获取函数
   const fetchPlants = useCallback(async () => {
-    try {
-      const response = await apiService.plants.getAll()
-      const serverPlants = response.data
+    // try {
+    //   const response = await apiService.plants.getAll()
+    //   const serverPlants = response.data
 
-      if (serverPlants && serverPlants.length > 0) {
-        setPlants(serverPlants)
-        return serverPlants
-      }
-      return []
-    } catch (error) {
-      console.error('获取植物数据失败:', error)
-      throw error
-    }
+    //   if (serverPlants && serverPlants.length > 0) {
+    //     setPlants(serverPlants)
+    //     return serverPlants
+    //   }
+    //   return []
+    // } catch (error) {
+    //   console.error('获取植物数据失败:', error)
+    //   throw error
+    // }
   }, [setPlants])
 
   // 处理离线且无本地数据的情况

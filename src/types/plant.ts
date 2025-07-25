@@ -15,7 +15,7 @@ export interface Plant {
 
 // 植物品种常量
 export const PlantVariety = {
-  SUNFLOWER: 'sunflower',         // 向日葵
+  DUOROU: '多肉植物',         // 多肉植物
 } as const
 
 export type PlantVarietyType = typeof PlantVariety[keyof typeof PlantVariety]

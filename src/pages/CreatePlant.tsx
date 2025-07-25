@@ -16,8 +16,8 @@ export default function CreatePlant({ onPlantCreated, onCancel }: CreatePlantPro
   // 植物品种选项
   const plantOptions = [
     {
-      value: PlantVariety.SUNFLOWER,
-      name: '向日葵',
+      value: PlantVariety.DUOROU,
+      name: '多肉植物',
       description: '阳光开朗，积极向上',
       emoji: '🌻',
       color: 'from-yellow-400 to-orange-500'

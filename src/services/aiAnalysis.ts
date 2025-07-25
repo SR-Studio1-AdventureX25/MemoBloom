@@ -69,7 +69,7 @@ export class AIAnalysisService {
     this.config = {
       apiKey: import.meta.env.VITE_MINIMAX_API_KEY || '',
       apiEndpoint: 'https://api.minimaxi.com/v1/text/chatcompletion_v2',
-      model: 'MiniMax-M1'
+      model: 'MiniMax-Text-01'
     }
   }
 
@@ -95,11 +95,14 @@ export class AIAnalysisService {
    * 调用MiniMax API
    */
   private async callMiniMaxAPI(messages: MiniMaxMessage[]): Promise<MiniMaxResponse> {
-    const requestData: MiniMaxRequest = {
+    const requestData: MiniMaxRequest & {thinking: {type: "disabled"}} = {
       model: this.config.model,
       messages,
       temperature: 0.7,
-      max_tokens: 100
+      max_tokens: 100,
+      thinking: {
+        type: "disabled"
+      }
     }
 
     const response = await fetch(this.config.apiEndpoint, {
