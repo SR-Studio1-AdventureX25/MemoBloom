@@ -22,34 +22,6 @@ export default function CreatePlant({ onPlantCreated, onCancel }: CreatePlantPro
       emoji: '🌻',
       color: 'from-yellow-400 to-orange-500'
     },
-    {
-      value: PlantVariety.ROSE,
-      name: '玫瑰',
-      description: '优雅浪漫，情感丰富',
-      emoji: '🌹',
-      color: 'from-red-400 to-pink-500'
-    },
-    {
-      value: PlantVariety.LAVENDER,
-      name: '薰衣草',
-      description: '宁静祥和，舒缓心灵',
-      emoji: '💜',
-      color: 'from-purple-400 to-indigo-500'
-    },
-    {
-      value: PlantVariety.BAMBOO,
-      name: '竹子',
-      description: '坚韧不拔，节节高升',
-      emoji: '🎋',
-      color: 'from-green-400 to-emerald-500'
-    },
-    {
-      value: PlantVariety.SAKURA,
-      name: '樱花',
-      description: '短暂美好，珍惜当下',
-      emoji: '🌸',
-      color: 'from-pink-400 to-rose-500'
-    }
   ]
 
   // 创建植物

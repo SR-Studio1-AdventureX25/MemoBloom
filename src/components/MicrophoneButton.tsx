@@ -346,12 +346,12 @@ export default function MicrophoneButton({
         disabled={isProcessing || permissionGranted === null}
         className={`relative select-none touch-none transition-all duration-200 ${
           isRecording
-            ? 'scale-125'
+            ? 'scale-110'
             : 'hover:scale-105 active:scale-95'
         }`}
         style={{
           transform: isRecording 
-            ? `translate(${dragPosition.x * 0.3}px, ${dragPosition.y * 0.3}px) scale(1.25)`
+            ? `translate(${dragPosition.x * 0.3}px, ${dragPosition.y * 0.3}px) scale(1.1)`
             : undefined
         }}
       >
