@@ -1,10 +1,10 @@
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
-import type { AppState, Plant, WateringRecord, OfflineWateringItem, ResourceCacheStatus } from '@/types'
+import type { AppState, Plant, WateringRecord, OfflineWateringItem } from '@/types'
 import type { AppStore } from './types'
 
 // 重新导出选择器函数以保持向后兼容性
-export { useResourceCacheActions, useNotificationActions, useOnlineActions } from './selectors'
+export { useNotificationActions, useOnlineActions } from './selectors'
 
 export const useAppStore = create<AppStore>()(
   devtools(
@@ -81,10 +81,6 @@ export const useAppStore = create<AppStore>()(
         ],
         offlineWateringQueue: [],
         isOnline: true,
-        resourceCache: {
-          isLoaded: false,
-          progress: 0
-        },
         notifications: [],
         videoPlaylist: ['plant-sprout-normal', 'plant-sprout-normal'], // 默认sprout阶段循环播放normal
         currentVideoIndex: 0,
@@ -140,13 +136,6 @@ export const useAppStore = create<AppStore>()(
 
         // Actions - 网络状态
         setOnlineStatus: (status: boolean) => set({ isOnline: status }),
-
-        // Actions - 资源缓存
-        setResourceCache: (status: ResourceCacheStatus) => set({ resourceCache: status }),
-
-        updateResourceCacheProgress: (progress: number) => set((state) => ({
-          resourceCache: { ...state.resourceCache, progress }
-        })),
 
         // Actions - 通知相关
         addNotification: (notification: Omit<AppState['notifications'][0], 'id' | 'createdAt'>) => set((state) => ({

@@ -2,8 +2,7 @@ import type {
   AppState, 
   Plant, 
   WateringRecord, 
-  OfflineWateringItem, 
-  ResourceCacheStatus 
+  OfflineWateringItem
 } from '@/types'
 
 // Store Actions接口定义
@@ -28,10 +27,6 @@ export interface AppActions {
   
   // 网络状态
   setOnlineStatus: (status: boolean) => void
-  
-  // 资源缓存
-  setResourceCache: (status: ResourceCacheStatus) => void
-  updateResourceCacheProgress: (progress: number) => void
   
   // 通知相关
   addNotification: (notification: Omit<AppState['notifications'][0], 'id' | 'createdAt'>) => void

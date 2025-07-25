@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react'
-import { resourceCacheService } from '@/services/resourceCache'
+import React, { useState, useEffect, useMemo } from 'react'
 
 interface PlantDisplayProps {
   stage: 'seed' | 'sprout' | 'mature' | 'flowering'
@@ -12,53 +11,52 @@ export const PlantDisplay: React.FC<PlantDisplayProps> = ({
   emotion, 
   onStageChange 
 }) => {
-  const [videoUrl, setVideoUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadPlantVideo()
-    // 预加载下一阶段资源
-    if (stage !== 'flowering') {
-      resourceCacheService.preloadNextStageResources(stage)
+  // 资源映射
+  const videoUrl = useMemo(() => {
+    const resourceMap: Record<string, string> = {
+      // 种子阶段
+      'seed-happy': '/plantsVideo/seed_happy.mp4',
+      'seed-normal': '/plantsVideo/seed_normal.png',
+      'seed-sad': '/plantsVideo/seed_sad.mp4',
+      // 幼苗阶段
+      'sprout-happy': '/plantsVideo/sprout_happy.mp4',
+      'sprout-normal': '/plantsVideo/sprout_normal.mp4',
+      'sprout-sad': '/plantsVideo/sprout_sad.mp4',
+      // 成熟阶段
+      'mature-happy': '/plantsVideo/mature_happy.mp4',
+      'mature-normal': '/plantsVideo/mature_normal.mp4',
+      'mature-sad': '/plantsVideo/mature_sad.mp4',
+      // 开花阶段
+      'flowering-happy': '/plantsVideo/flowering_happy.mp4',
+      'flowering-normal': '/plantsVideo/flowering_normal.mp4',
+      'flowering-sad': '/plantsVideo/flowering_sad.mp4'
     }
+    
+    return resourceMap[`${stage}-${emotion}`] || null
   }, [stage, emotion])
 
-  const loadPlantVideo = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      // 使用新的便捷方法获取植物视频URL
-      const url = await resourceCacheService.getPlantVideoURL(stage, emotion)
-      
-      if (url) {
-        setVideoUrl(url)
+  useEffect(() => {
+    // 简单的加载状态模拟
+    setLoading(true)
+    setError(null)
+    
+    const timer = setTimeout(() => {
+      if (videoUrl) {
+        setLoading(false)
       } else {
-        // 如果缓存中没有，尝试修复缓存
-        console.log(`缓存中未找到 ${stage}-${emotion} 视频，尝试修复缓存...`)
-        await resourceCacheService.repairCache()
-        
-        // 再次尝试获取
-        const repairedUrl = await resourceCacheService.getPlantVideoURL(stage, emotion)
-        if (repairedUrl) {
-          setVideoUrl(repairedUrl)
-        } else {
-          throw new Error(`无法加载 ${stage}-${emotion} 植物视频`)
-        }
+        setError(`无法找到 ${stage}-${emotion} 资源`)
+        setLoading(false)
       }
-    } catch (err) {
-      console.error('加载植物视频失败:', err)
-      setError(err instanceof Error ? err.message : '加载视频失败')
-    } finally {
-      setLoading(false)
-    }
-  }
+    }, 100)
+
+    return () => clearTimeout(timer)
+  }, [stage, emotion, videoUrl])
 
   const handleVideoError = () => {
     setError('视频播放失败')
-    // 尝试重新加载
-    loadPlantVideo()
   }
 
   const simulateGrowth = () => {
@@ -89,10 +87,10 @@ export const PlantDisplay: React.FC<PlantDisplayProps> = ({
         <div className="text-center">
           <p className="text-red-600 mb-2">{error}</p>
           <button 
-            onClick={loadPlantVideo}
+            onClick={() => window.location.reload()}
             className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
           >
-            重试
+            重新加载
           </button>
         </div>
       </div>

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useAppStore } from '@/store'
-import { resourceCacheService } from '@/services/resourceCache'
 
 export default function VideoBackground() {
   const { 
@@ -57,23 +56,28 @@ export default function VideoBackground() {
     return currentResourceId?.includes('seed-normal') || false
   }, [currentResourceId])
 
-  // 加载视频URL
-  const loadVideoUrl = useCallback(async (resourceId: string): Promise<string | null> => {
-    try {
-      console.log(`加载视频资源: ${resourceId}`)
-      const cachedResourceUrl = await resourceCacheService.getCachedResourceURL(resourceId)
-      
-      if (cachedResourceUrl) {
-        console.log(`成功加载视频: ${resourceId}`)
-        return cachedResourceUrl
-      } else {
-        console.warn(`缓存资源未找到: ${resourceId}`)
-        return null
-      }
-    } catch (error) {
-      console.error(`加载资源失败: ${resourceId}`, error)
-      return null
+  // 资源ID到静态文件路径的映射
+  const getResourceUrl = useCallback((resourceId: string): string | null => {
+    const resourceMap: Record<string, string> = {
+      // 种子阶段
+      'plant-seed-happy': '/plantsVideo/seed_happy.mp4',
+      'plant-seed-normal': '/plantsVideo/seed_normal.png',
+      'plant-seed-sad': '/plantsVideo/seed_sad.mp4',
+      // 幼苗阶段
+      'plant-sprout-happy': '/plantsVideo/sprout_happy.mp4',
+      'plant-sprout-normal': '/plantsVideo/sprout_normal.mp4',
+      'plant-sprout-sad': '/plantsVideo/sprout_sad.mp4',
+      // 成熟阶段
+      'plant-mature-happy': '/plantsVideo/mature_happy.mp4',
+      'plant-mature-normal': '/plantsVideo/mature_normal.mp4',
+      'plant-mature-sad': '/plantsVideo/mature_sad.mp4',
+      // 开花阶段
+      'plant-flowering-happy': '/plantsVideo/flowering_happy.mp4',
+      'plant-flowering-normal': '/plantsVideo/flowering_normal.mp4',
+      'plant-flowering-sad': '/plantsVideo/flowering_sad.mp4'
     }
+    
+    return resourceMap[resourceId] || null
   }, [])
 
   // 处理视频播放结束
@@ -178,40 +182,36 @@ export default function VideoBackground() {
 
   // 加载当前视频和下一个视频
   useEffect(() => {
-    const loadVideos = async () => {
-      if (!currentResourceId || isCurrentResourceImage) {
-        setIsLoading(false)
-        return
-      }
-
-      try {
-        setIsLoading(true)
-        setError(null)
-
-        console.log(`加载视频组合: ${currentResourceId} -> ${nextResourceId}`)
-
-        // 加载当前视频
-        const currentUrl = await loadVideoUrl(currentResourceId)
-        setFrontVideoUrl(currentUrl)
-
-        // 预加载下一个视频
-        if (nextResourceId && nextResourceId !== currentResourceId) {
-          const nextUrl = await loadVideoUrl(nextResourceId)
-          setBackVideoUrl(nextUrl)
-        } else {
-          setBackVideoUrl(currentUrl) // 如果没有下一个，使用相同的视频
-        }
-
-        setIsLoading(false)
-      } catch (error) {
-        console.error('加载视频失败:', error)
-        setError('加载视频失败')
-        setIsLoading(false)
-      }
+    if (!currentResourceId) {
+      setIsLoading(false)
+      return
     }
 
-    loadVideos()
-  }, [currentResourceId, nextResourceId, isCurrentResourceImage, loadVideoUrl])
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      console.log(`加载视频组合: ${currentResourceId} -> ${nextResourceId}`)
+
+      // 获取当前视频URL
+      const currentUrl = getResourceUrl(currentResourceId)
+      setFrontVideoUrl(currentUrl)
+
+      // 获取下一个视频URL
+      if (nextResourceId && nextResourceId !== currentResourceId) {
+        const nextUrl = getResourceUrl(nextResourceId)
+        setBackVideoUrl(nextUrl)
+      } else {
+        setBackVideoUrl(currentUrl) // 如果没有下一个，使用相同的视频
+      }
+
+      setIsLoading(false)
+    } catch (error) {
+      console.error('加载视频失败:', error)
+      setError('加载视频失败')
+      setIsLoading(false)
+    }
+  }, [currentResourceId, nextResourceId, getResourceUrl])
 
   // 重置播放标志当URL变化时
   useEffect(() => {

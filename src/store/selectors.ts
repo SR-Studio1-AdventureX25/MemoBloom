@@ -1,13 +1,6 @@
 import { useAppStore } from '.'
 
 // Selector functions for specific actions with stable references
-export const useResourceCacheActions = () => {
-  const setResourceCache = useAppStore(state => state.setResourceCache)
-  const updateResourceCacheProgress = useAppStore(state => state.updateResourceCacheProgress)
-  
-  return { setResourceCache, updateResourceCacheProgress }
-}
-
 export const useNotificationActions = () => {
   const addNotification = useAppStore(state => state.addNotification)
   

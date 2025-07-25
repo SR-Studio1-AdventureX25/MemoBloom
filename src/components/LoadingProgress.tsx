@@ -1,34 +1,16 @@
-import { useAppStore } from '@/store'
-import { useSmoothProgress } from '@/hooks/useSmoothProgress'
 import { useState, useEffect } from 'react'
 
 interface LoadingProgressProps {
   // 显示控制
   visible?: boolean // 是否可见，默认 true
-  // Sigmoid 函数参数
-  simulationSpeed?: number // 模拟速度系数，默认 1.0
-  steepness?: number // 曲线陡峭程度，默认 6
-  midpoint?: number // 中点位置（0-1），默认 0.5
 }
 
 export default function LoadingProgress({ 
-  visible = true,
-  simulationSpeed = 1.0,
-  steepness = 6,
-  midpoint = 0.5
+  visible = true
 }: LoadingProgressProps) {
-  const { resourceCache } = useAppStore()
-  
   // 内部状态管理渲染和透明度
   const [shouldRender, setShouldRender] = useState(visible)
   const [opacity, setOpacity] = useState(visible ? 1 : 0)
-  
-  // 使用优化的平滑进度 hook
-  const { displayProgress } = useSmoothProgress(resourceCache.progress, {
-    simulationSpeed,
-    steepness,
-    midpoint
-  })
 
   // 监听 visible 属性变化，控制淡入淡出
   useEffect(() => {
@@ -89,38 +71,19 @@ export default function LoadingProgress({
           正在加载游戏资源...
         </p>
 
-        {/* 进度条容器 */}
+        {/* 加载动画 */}
         <div className="w-full">
-          {/* 进度条背景 */}
-          <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden mb-4">
-            {/* 进度条 */}
-            <div 
-              className="h-full bg-gradient-to-r from-green-400 to-blue-500 rounded-full transition-all duration-300 ease-out"
-              style={{ width: `${displayProgress}%` }}
-            >
-              {/* 光晕效果 */}
-              <div className="w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
-            </div>
+          {/* 加载动画圆环 */}
+          <div className="flex justify-center mb-6">
+            <div className="w-16 h-16 border-4 border-gray-700 border-t-green-400 rounded-full animate-spin"></div>
           </div>
 
-          {/* 进度文本 */}
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-400">
-              {resourceCache.error ? '加载出错' : '加载中'}
-            </span>
-            <span className="text-white font-mono">
-              {Math.round(displayProgress)}%
+          {/* 状态文本 */}
+          <div className="text-center">
+            <span className="text-gray-400 text-sm">
+              正在初始化应用...
             </span>
           </div>
-
-          {/* 错误信息 */}
-          {resourceCache.error && (
-            <div className="mt-4 p-3 bg-red-900/50 border border-red-700 rounded-lg">
-              <p className="text-red-300 text-sm text-center">
-                {resourceCache.error}
-              </p>
-            </div>
-          )}
         </div>
 
         {/* 加载提示 */}
