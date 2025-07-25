@@ -1,8 +1,9 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import HomePage from '@/pages/HomePage'
 import DigitalLibraryPage from '@/pages/DigitalLibrary'
+import WalletPage from '@/pages/WalletPage'
 
-type CurrentPage = 'home' | 'library'
+type CurrentPage = 'home' | 'library' | 'wallet'
 
 interface TouchInfo {
   startY: number
@@ -12,7 +13,7 @@ interface TouchInfo {
 
 const PageContainer = () => {
   const [currentPage, setCurrentPage] = useState<CurrentPage>('home')
-  const [animationProgress, setAnimationProgress] = useState(0) // 0-1, 0是home完全显示，1是library完全显示
+  const [animationProgress, setAnimationProgress] = useState(0) // 0-2, 0是home，1是library，2是wallet
   const [isAnimating, setIsAnimating] = useState(false)
   
   const containerRef = useRef<HTMLDivElement>(null)
@@ -51,7 +52,13 @@ const PageContainer = () => {
         animationFrameRef.current = requestAnimationFrame(animate)
       } else {
         setIsAnimating(false)
-        setCurrentPage(targetProgress >= 0.5 ? 'library' : 'home')
+        if (targetProgress >= 1.5) {
+          setCurrentPage('wallet')
+        } else if (targetProgress >= 0.5) {
+          setCurrentPage('library')
+        } else {
+          setCurrentPage('home')
+        }
       }
     }
 
@@ -98,8 +105,10 @@ const PageContainer = () => {
     // 限制拖拽范围
     if (currentPage === 'home') {
       progress = Math.max(0, Math.min(1, progress))
-    } else {
-      progress = Math.max(0, Math.min(1, 1 + progress)) // library页面下滑时progress从1减少到0
+    } else if (currentPage === 'library') {
+      progress = Math.max(0, Math.min(2, 1 + progress)) // library页面可以上滑到wallet或下滑到home
+    } else if (currentPage === 'wallet') {
+      progress = Math.max(1, Math.min(2, 2 + progress)) // wallet页面下滑时progress从2减少到1
     }
     
     // 使用RAF节流的更新
@@ -125,13 +134,21 @@ const PageContainer = () => {
       // 上滑切换到library
       setCurrentPage('library')
       startAnimation(1)
+    } else if (currentPage === 'library' && deltaY > 0 && shouldSwitch) {
+      // 上滑切换到wallet
+      setCurrentPage('wallet')
+      startAnimation(2)
     } else if (currentPage === 'library' && deltaY < 0 && shouldSwitch) {
       // 下滑切换到home
       setCurrentPage('home')
       startAnimation(0)
+    } else if (currentPage === 'wallet' && deltaY < 0 && shouldSwitch) {
+      // 下滑切换到library
+      setCurrentPage('library')
+      startAnimation(1)
     } else {
       // 回弹到当前页面
-      const targetProgress = currentPage === 'home' ? 0 : 1
+      const targetProgress = currentPage === 'home' ? 0 : currentPage === 'library' ? 1 : 2
       startAnimation(targetProgress, ANIMATION_DURATION / 2)
     }
 
@@ -208,9 +225,32 @@ const PageContainer = () => {
     return {
       transform: `translate3d(0, ${translateY}%, ${translateZ}px) rotateX(${rotateX}deg) scale(${scale})`,
       opacity,
-      zIndex: progress > 0.5 ? 2 : 1,
+      zIndex: progress > 0.5 && progress < 1.5 ? 2 : 1,
       boxShadow: `0 ${shadowOffset}px ${shadowBlur}px rgba(0, 0, 0, ${shadowOpacity})`,
       filter: `brightness(${0.8 + progress * 0.2})`,
+      backfaceVisibility: 'hidden' as const
+    }
+  }, [animationProgress])
+
+  const walletStyle = useMemo(() => {
+    const progress = animationProgress
+    const translateY = (2 - progress) * 100
+    const translateZ = (2 - progress) * -300
+    const rotateX = (2 - progress) * 30
+    const scale = 0.8 + (progress - 1) * 0.2
+    const opacity = (progress - 1) * 0.9 + 0.1
+    
+    // 简化阴影计算
+    const shadowOpacity = (progress - 1) * 0.5
+    const shadowBlur = 40 + (2 - progress) * 15
+    const shadowOffset = (2 - progress) * 12
+    
+    return {
+      transform: `translate3d(0, ${translateY}%, ${translateZ}px) rotateX(${rotateX}deg) scale(${scale})`,
+      opacity: Math.max(0, opacity),
+      zIndex: progress > 1.5 ? 2 : 1,
+      boxShadow: `0 ${shadowOffset}px ${shadowBlur}px rgba(0, 0, 0, ${shadowOpacity})`,
+      filter: `brightness(${0.7 + (progress - 1) * 0.3})`,
       backfaceVisibility: 'hidden' as const
     }
   }, [animationProgress])
@@ -312,11 +352,55 @@ const PageContainer = () => {
         )}
       </div>
 
+      {/* Wallet页面 */}
+      <div
+        className="absolute inset-0 will-change-transform rounded-xl overflow-hidden"
+        style={{
+          ...walletStyle,
+          transition: isAnimating ? 'none' : 'all 0.3s ease-out',
+          transformStyle: 'preserve-3d'
+        }}
+      >
+        {/* 页面厚度效果 - 顶面 */}
+        <div 
+          className="absolute inset-0 bg-gradient-to-b from-green-300/10 to-transparent pointer-events-none"
+          style={{
+            transform: 'translateZ(8px)',
+            borderRadius: '12px'
+          }}
+        />
+        {/* 页面厚度效果 - 侧面 */}
+        <div 
+          className="absolute inset-0 bg-gradient-to-r from-green-900/30 to-green-800/20 pointer-events-none"
+          style={{
+            transform: 'rotateX(90deg) translateZ(4px)',
+            transformOrigin: 'bottom',
+            height: '8px',
+            bottom: 0
+          }}
+        />
+        
+        <div className="relative w-full h-full bg-gradient-to-br from-green-900 via-emerald-900 to-teal-900 rounded-xl overflow-hidden border border-green-400/20">
+          <WalletPage />
+        </div>
+        
+        {/* Wallet页面遮罩，增强层次感 */}
+        {animationProgress > 1 && (
+          <div 
+            className="absolute inset-0 bg-black pointer-events-none rounded-xl"
+            style={{ 
+              opacity: (2 - animationProgress) * 0.3,
+              zIndex: -1 
+            }}
+          />
+        )}
+      </div>
+
       {/* 页面指示器 - 极简设计 */}
       <div 
         className="absolute right-3 top-1/2 transform -translate-y-1/2 flex flex-col space-y-2 z-50 transition-opacity duration-300"
         style={{ 
-          opacity: (animationProgress === 0 || animationProgress === 1) ? 1 : 0 
+          opacity: (animationProgress === 0 || animationProgress === 1 || animationProgress === 2) ? 1 : 0 
         }}
       >
         <div 
@@ -333,10 +417,16 @@ const PageContainer = () => {
               : 'bg-white/20'
           }`} 
         />
+        <div 
+          className={`w-1 h-1 rounded-full transition-all duration-500 ${
+            currentPage === 'wallet' 
+              ? 'bg-white/80' 
+              : 'bg-white/20'
+          }`} 
+        />
       </div>
     </div>
   )
 }
 
 export default PageContainer
-
