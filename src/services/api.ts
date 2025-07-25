@@ -175,7 +175,6 @@ const mapChineseToEnglishGrowthStage = (chineseStage: string): string => {
   return stageMap[chineseStage] || 'seed'
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 // const mapEnglishToChineseGrowthStage = (englishStage: string): string => {
 //   const stageMap: Record<string, string> = {
 //     'seed': '种子',
