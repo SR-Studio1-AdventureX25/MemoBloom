@@ -65,8 +65,8 @@ function App() {
 
   return (
     <>
-      {/* 路由提供者 */}
-      <RouterProvider router={router}></RouterProvider>
+      {/* 只有当应用准备好时才渲染路由 */}
+      {isAppReady && <RouterProvider router={router} />}
       
       {/* PWA安装提示 */}
       <PWAInstallPrompt />
@@ -74,7 +74,7 @@ function App() {
       {/* PWA更新提示 */}
       <PWAUpdatePrompt />
       
-      {/* 加载屏作为叠加层 */}
+      {/* 加载屏，延迟200毫秒消失 */}
       <LoadingProgress visible={!isAppReady} />
     </>
   )

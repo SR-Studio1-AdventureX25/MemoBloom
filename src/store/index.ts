@@ -86,6 +86,8 @@ export const useAppStore = create<AppStore>()(
           progress: 0
         },
         notifications: [],
+        videoPlaylist: ['plant-sprout-normal', 'plant-sprout-normal'], // 默认sprout阶段循环播放normal
+        currentVideoIndex: 0,
 
         // Actions - 植物相关
         setPlants: (plants: Plant[]) => set({ plants }),
@@ -164,7 +166,17 @@ export const useAppStore = create<AppStore>()(
           )
         })),
         
-        clearNotifications: () => set({ notifications: [] })
+        clearNotifications: () => set({ notifications: [] }),
+
+        // Actions - 视频播放列表相关
+        setVideoPlaylist: (playlist: string[]) => set({ videoPlaylist: playlist }),
+
+        setCurrentVideoIndex: (index: number) => set({ currentVideoIndex: index }),
+
+        updateVideoPlaylist: (playlist: string[]) => set({ 
+          videoPlaylist: playlist,
+          currentVideoIndex: 0 // 重置到第一个视频
+        })
       }),
       {
         name: 'memobloom-storage',

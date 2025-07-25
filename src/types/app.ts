@@ -24,4 +24,6 @@ export interface AppState {
     read: boolean
     createdAt: Date
   }>
+  videoPlaylist: string[]         // 视频播放列表 (长度为2)
+  currentVideoIndex: number       // 当前播放的视频索引 (0或1)
 }

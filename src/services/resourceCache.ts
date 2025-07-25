@@ -147,24 +147,30 @@ export class ResourceCacheService {
       setResourceCache({ isLoaded: false, progress: 0 })
 
       // 分阶段缓存资源
-      await this.cacheResourcesByStages()
+      const cacheResults = await this.cacheResourcesByStages()
 
-      // 完成缓存
+      // 即使有部分失败，也认为缓存完成
       setResourceCache({ isLoaded: true, progress: 100 })
-      console.log('All resources cached successfully')
+      
+      if (cacheResults.failedCount > 0) {
+        console.warn(`资源缓存完成，但有 ${cacheResults.failedCount}/${cacheResults.totalCount} 个资源缓存失败`)
+      } else {
+        console.log('所有资源缓存成功')
+      }
 
     } catch (error) {
-      console.error('Failed to cache resources:', error)
+      console.error('资源缓存过程中发生严重错误:', error)
+      // 即使出现严重错误，也让应用可以运行（使用降级方案）
       setResourceCache({ 
-        isLoaded: false, 
-        progress: 0, 
-        error: error instanceof Error ? error.message : '缓存失败' 
+        isLoaded: true, 
+        progress: 100, 
+        error: error instanceof Error ? error.message : '缓存失败，使用降级模式' 
       })
     }
   }
 
   // 分阶段缓存资源
-  private async cacheResourcesByStages(): Promise<void> {
+  private async cacheResourcesByStages(): Promise<{ totalCount: number; failedCount: number; successCount: number }> {
     const { updateResourceCacheProgress } = getResourceCacheActions()
     
     // 定义优先级分组
@@ -185,6 +191,7 @@ export class ResourceCacheService {
 
     const totalResources = this.RESOURCES_TO_CACHE.length
     let completedResources = 0
+    let failedCount = 0
 
     // 阶段1：高优先级资源（基础资源 + 种子/幼苗阶段）
     console.log('缓存阶段1：基础资源和早期植物阶段')
@@ -197,6 +204,7 @@ export class ResourceCacheService {
         console.log(`高优先级缓存 ${resource.key}: ${progress}%`)
       } catch (error) {
         console.error(`Failed to cache high priority ${resource.key}:`, error)
+        failedCount++
         completedResources++
         const progress = Math.round((completedResources / totalResources) * 100)
         updateResourceCacheProgress(progress)
@@ -214,6 +222,7 @@ export class ResourceCacheService {
         console.log(`中优先级缓存 ${resource.key}: ${progress}%`)
       } catch (error) {
         console.error(`Failed to cache medium priority ${resource.key}:`, error)
+        failedCount++
         completedResources++
         const progress = Math.round((completedResources / totalResources) * 100)
         updateResourceCacheProgress(progress)
@@ -231,10 +240,17 @@ export class ResourceCacheService {
         console.log(`低优先级缓存 ${resource.key}: ${progress}%`)
       } catch (error) {
         console.error(`Failed to cache low priority ${resource.key}:`, error)
+        failedCount++
         completedResources++
         const progress = Math.round((completedResources / totalResources) * 100)
         updateResourceCacheProgress(progress)
       }
+    }
+
+    return {
+      totalCount: totalResources,
+      failedCount,
+      successCount: totalResources - failedCount
     }
   }
 
@@ -389,7 +405,9 @@ export class ResourceCacheService {
   async getCachedResourceURL(key: string): Promise<string | null> {
     // 检查是否已有缓存的 Object URL
     if (this.objectURLCache.has(key)) {
-      return this.objectURLCache.get(key)!
+      const existingUrl = this.objectURLCache.get(key)!
+      console.log(`复用现有URL: ${key}`)
+      return existingUrl
     }
 
     // 获取 blob 并创建 Object URL
@@ -397,8 +415,11 @@ export class ResourceCacheService {
     if (blob) {
       const objectURL = URL.createObjectURL(blob)
       this.objectURLCache.set(key, objectURL)
+      console.log(`创建新URL: ${key}, ${objectURL.substring(0, 50)}...`)
       return objectURL
     }
+    
+    console.warn(`无法为资源创建URL: ${key}`)
     return null
   }
 

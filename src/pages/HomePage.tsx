@@ -193,6 +193,35 @@ export default function HomePage() {
       read: false
     })
     
+    // 模拟逻辑：无论浇水是否成功，随机选择高兴或悲伤
+    if (currentPlant) {
+      const emotions = ['happy', 'sad'] as const
+      const randomEmotion = emotions[Math.floor(Math.random() * emotions.length)]
+      const stage = currentPlant.currentGrowthStage
+      
+      // 更新播放列表：先播放normal，然后播放情感视频
+      const { updateVideoPlaylist } = useAppStore.getState()
+      updateVideoPlaylist([
+        `plant-${stage}-normal`,
+        `plant-${stage}-${randomEmotion}`
+      ])
+      
+      console.log(`植物情感反应: ${randomEmotion}, 阶段: ${stage}`)
+      
+      // 更新通知消息以反映植物的情感状态
+      const emotionMessages = {
+        happy: '你的植物很开心！🌱✨',
+        sad: '你的植物有点难过 😢💧'
+      } as const
+      
+      addNotification({
+        title: `植物情感反应: ${randomEmotion === 'happy' ? '开心' : '悲伤'}`,
+        message: emotionMessages[randomEmotion],
+        type: 'info',
+        read: false
+      })
+    }
+    
     // 刷新植物数据
     if (success && isOnline && currentPlant) {
       fetchPlants().catch(error => {

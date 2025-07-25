@@ -37,6 +37,11 @@ export interface AppActions {
   addNotification: (notification: Omit<AppState['notifications'][0], 'id' | 'createdAt'>) => void
   markNotificationAsRead: (id: string) => void
   clearNotifications: () => void
+  
+  // 视频播放列表相关
+  setVideoPlaylist: (playlist: string[]) => void
+  setCurrentVideoIndex: (index: number) => void
+  updateVideoPlaylist: (playlist: string[]) => void
 }
 
 // Store完整类型（状态 + 动作）

@@ -6,7 +6,7 @@ import { resourceCacheService } from '@/services/resourceCache'
 // 配置常量
 const APP_CONFIG = {
   FORCE_READY_TIMEOUT: 10000, // 10秒后强制进入应用
-  COMPLETION_DELAY: 500 // 完成后延迟时间
+  COMPLETION_DELAY: 200 // 完成后延迟时间
 } as const
 
 interface AppInitializationState {
