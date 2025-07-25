@@ -1,6 +1,138 @@
 import { memo, useEffect, useRef, useState } from "react";
 import type { Plant, WateringRecord } from "@/types";
 
+// 7段数码管组件
+const SevenSegmentDigit = memo(function ({ digit }: { digit: number }) {
+  // 7段数码管的段定义 (a, b, c, d, e, f, g)
+  const segments = {
+    0: [true, true, true, true, true, true, false],
+    1: [false, true, true, false, false, false, false],
+    2: [true, true, false, true, true, false, true],
+    3: [true, true, true, true, false, false, true],
+    4: [false, true, true, false, false, true, true],
+    5: [true, false, true, true, false, true, true],
+    6: [true, false, true, true, true, true, true],
+    7: [true, true, true, false, false, false, false],
+    8: [true, true, true, true, true, true, true],
+    9: [true, true, true, true, false, true, true],
+  };
+
+  const segmentPattern = segments[digit as keyof typeof segments] || [false, false, false, false, false, false, false];
+
+  const segmentStyle = (isActive: boolean) => ({
+    backgroundColor: isActive ? '#ff6b35' : 'transparent',
+    boxShadow: isActive ? '0 0 8px #ff6b35, 0 0 15px #ff6b35, inset 0 0 3px #ff6b35' : 'none',
+    transition: 'all 0.2s ease',
+    display: isActive ? 'block' : 'none'
+  });
+
+  return (
+    <div className="relative w-12 h-18 mx-1">
+      {/* 段 a (顶部) */}
+      <div 
+        className="absolute top-0 left-1 w-9 h-1.5"
+        style={{
+          clipPath: 'polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%)',
+          ...segmentStyle(segmentPattern[0])
+        }}
+      />
+      
+      {/* 段 b (右上) */}
+      <div 
+        className="absolute top-1 right-0 w-1.5 h-7"
+        style={{
+          clipPath: 'polygon(0% 10%, 100% 0%, 100% 90%, 0% 100%)',
+          ...segmentStyle(segmentPattern[1])
+        }}
+      />
+      
+      {/* 段 c (右下) */}
+      <div 
+        className="absolute bottom-1 right-0 w-1.5 h-7"
+        style={{
+          clipPath: 'polygon(0% 0%, 100% 10%, 100% 90%, 0% 100%)',
+          ...segmentStyle(segmentPattern[2])
+        }}
+      />
+      
+      {/* 段 d (底部) */}
+      <div 
+        className="absolute bottom-0 left-1 w-9 h-1.5"
+        style={{
+          clipPath: 'polygon(0% 0%, 100% 0%, 90% 100%, 10% 100%)',
+          ...segmentStyle(segmentPattern[3])
+        }}
+      />
+      
+      {/* 段 e (左下) */}
+      <div 
+        className="absolute bottom-1 left-0 w-1.5 h-7"
+        style={{
+          clipPath: 'polygon(0% 10%, 100% 0%, 100% 100%, 0% 90%)',
+          ...segmentStyle(segmentPattern[4])
+        }}
+      />
+      
+      {/* 段 f (左上) */}
+      <div 
+        className="absolute top-1 left-0 w-1.5 h-7"
+        style={{
+          clipPath: 'polygon(0% 0%, 100% 10%, 100% 100%, 0% 90%)',
+          ...segmentStyle(segmentPattern[5])
+        }}
+      />
+      
+      {/* 段 g (中间) */}
+      <div 
+        className="absolute top-8 left-1 w-9 h-1.5"
+        style={{
+          clipPath: 'polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%)',
+          ...segmentStyle(segmentPattern[6])
+        }}
+      />
+    </div>
+  );
+});
+
+// 数码管风格的时间显示组件
+const DigitalCalendar = memo(function ({ scrollLeft = 0 }: { scrollLeft?: number }) {
+  // 根据滚动位置和时间首位估计时间
+  const getEstimatedTime = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    
+    // 根据滚动位置调整时间（简单的估算逻辑）
+    const scrollFactor = Math.floor(scrollLeft / 100); // 每100px滚动调整1个单位
+    const estimatedMonth = Math.max(1, Math.min(12, month + scrollFactor));
+    
+    return { year, month: estimatedMonth };
+  };
+
+  const { year, month } = getEstimatedTime();
+
+  return (
+    <div className="flex items-center justify-center p-4">
+      {/* 一行显示年份和月份，中间用空格隔开 */}
+      <div className="flex items-center gap-6">
+        {/* 年份 */}
+        <div className="flex items-center gap-1">
+          <SevenSegmentDigit digit={Math.floor(year / 1000)} />
+          <SevenSegmentDigit digit={Math.floor((year % 1000) / 100)} />
+          <SevenSegmentDigit digit={Math.floor((year % 100) / 10)} />
+          <SevenSegmentDigit digit={year % 10} />
+        </div>
+        
+        {/* 月份 */}
+        <div className="flex items-center gap-1">
+          <SevenSegmentDigit digit={Math.floor(month / 10)} />
+          <SevenSegmentDigit digit={month % 10} />
+        </div>
+      </div>
+    </div>
+  );
+});
+
 const PlantBox = memo(function ({offset}: {plant: Plant, offset: {x: number, y: number}}) {
   return (<>
     <div 
@@ -221,6 +353,9 @@ export default function DigitalLibraryPage() {
     startY: number,
     startSize: number
   } | null>(null);
+  
+  // 滚动位置状态
+  const [scrollLeft, setScrollLeft] = useState(0);
 
   // 处理音频点击
   const handleAudioClick = (audioRecord: WateringRecord, event: React.MouseEvent) => {
@@ -229,7 +364,7 @@ export default function DigitalLibraryPage() {
     
     // 找到对应的offset - 通过查找匹配的audioRecord
     let offset = { x: 0, y: 0 };
-    const audioIndex = audios.findIndex(audio => audio.id === audioRecord.id);
+    const audioIndex = sortedAudios.findIndex(audio => audio.id === audioRecord.id);
     if (audioIndex !== -1) {
       // 计算在第二行中的位置索引 - AudioBox在第二行的奇数位（索引1,3,5...）
       const positionInRow = Math.floor(audioIndex / 3); // 每3个audio循环一次
@@ -294,7 +429,7 @@ export default function DigitalLibraryPage() {
     return offsets;
   });
 
-  // 添加假数据
+  // 添加假数据 - 按时间顺序排序
   const [plants] = useState<Plant[]>([
     {
       id: "plant-1",
@@ -329,7 +464,7 @@ export default function DigitalLibraryPage() {
       nftMinted: false,
       createdAt: "2024-01-03T00:00:00Z"
     }
-  ]);
+  ].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
 
   const [audios] = useState<WateringRecord[]>([
     {
@@ -376,15 +511,25 @@ export default function DigitalLibraryPage() {
     }
   ]);
 
+  // 按时间顺序排序的数据
+  const sortedPlants = plants.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  const sortedAudios = audios.sort((a, b) => new Date(a.wateringTime).getTime() - new Date(b.wateringTime).getTime());
+
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
-      // 页面加载时向右滚动 60px
-      scrollAreaRef.current.scrollLeft = 60;
+      // 页面加载时向右滚动 90px
+      scrollAreaRef.current.scrollLeft = 90;
+      setScrollLeft(90);
     }
   }, []);
 
+  // 处理滚动事件
+  const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLDivElement;
+    setScrollLeft(target.scrollLeft);
+  };
 
   return (
     <div 
@@ -395,7 +540,8 @@ export default function DigitalLibraryPage() {
       <div 
         ref={scrollAreaRef}
         data-horizontal-scroll
-        className="absolute top-1/4 -translate-y-1/2 left-0 w-full overflow-x-auto overflow-y-hidden scrollbar-hidden px-12 py-8"
+        className="w-full overflow-x-auto overflow-y-hidden scrollbar-hidden px-12 py-8"
+        onScroll={handleScroll}
       >
         {/* 内容容器 - 足够宽以容纳所有卡片 */}
         <div className="flex flex-col gap-16">
@@ -406,7 +552,7 @@ export default function DigitalLibraryPage() {
                 {i % 2 === 0 ? (
                   // 奇数位（索引0,2,4...）放PlantBox
                   <PlantBox 
-                    plant={plants[i % plants.length]} 
+                    plant={sortedPlants[Math.floor(i/2) % sortedPlants.length]} 
                     offset={boxOffsets[`row1-${i}`] || {x: 0, y: 0}}
                   />
                 ) : (
@@ -424,9 +570,9 @@ export default function DigitalLibraryPage() {
                 {i % 2 === 1 ? (
                   // 偶数位（索引1,3,5...）放AudioBox
                   <AudioBox 
-                    audioRecord={audios[i % audios.length]} 
+                    audioRecord={sortedAudios[Math.floor(i/2) % sortedAudios.length]} 
                     offset={boxOffsets[`row2-${i}`] || {x: 0, y: 0}}
-                    onClick={(event) => handleAudioClick(audios[i % audios.length], event)}
+                    onClick={(event) => handleAudioClick(sortedAudios[Math.floor(i/2) % sortedAudios.length], event)}
                   />
                 ) : (
                   // 奇数位留空
@@ -436,6 +582,10 @@ export default function DigitalLibraryPage() {
             ))}
           </div>
         </div>
+      </div>
+
+      <div className="calendar mt-20 flex justify-center scale-90">
+        <DigitalCalendar scrollLeft={scrollLeft} />
       </div>
       
       {/* 音频详情模态框 */}
