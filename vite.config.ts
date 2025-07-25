@@ -6,7 +6,6 @@ import path from "path"
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/app',
   plugins: [
     react(),
     tailwindcss(),
@@ -35,7 +34,7 @@ export default defineConfig({
             options: {
               cacheName: 'images-cache',
               expiration: {
-                maxEntries: 50,
+                maxEntries: 150,
                 maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
               },
             },
@@ -46,7 +45,7 @@ export default defineConfig({
             options: {
               cacheName: 'videos-cache',
               expiration: {
-                maxEntries: 20,
+                maxEntries: 40,
                 maxAgeSeconds: 60 * 60 * 24 * 60, // 60 days
               },
             },
