@@ -94,6 +94,13 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      'buffer': 'buffer/',
     },
+  },
+  define: {
+    // 这会将 process.env.NODE_ENV 替换为实际值，避免一些库的报错
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+    // 定义 global 对象，某些库会用到
+    global: 'window',
   },
 })
