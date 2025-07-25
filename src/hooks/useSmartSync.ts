@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from 'react'
+import { useEffect, useCallback, useState, useMemo } from 'react'
 import { useAppStore } from '@/store'
 import { syncService } from '@/services/syncService'
 
@@ -11,13 +11,31 @@ export interface SyncState {
 }
 
 export function useSmartSync() {
-  const { isOnline, lastGlobalSync, addNotification } = useAppStore()
-  const [syncState, setSyncState] = useState<SyncState>({
-    isSyncing: false,
-    lastSyncTime: lastGlobalSync,
+  const { isOnline, lastGlobalSync, addNotification, plants, wateringRecords, getSyncStatus } = useAppStore()
+  const [lastSyncResult, setLastSyncResult] = useState<{ plantsUpdated: number; recordsUpdated: number }>({
     plantsUpdated: 0,
     recordsUpdated: 0
   })
+  
+  // 计算全局同步状态
+  const syncState = useMemo((): SyncState => {
+    // 检查是否有任何数据正在同步
+    const isSyncing = plants.some(plant => getSyncStatus(plant.id, 'plant').isSyncing) ||
+                     wateringRecords.some(record => getSyncStatus(record.id, 'watering').isSyncing)
+    
+    // 获取同步错误
+    const plantErrors = plants.map(plant => getSyncStatus(plant.id, 'plant').error).filter(Boolean)
+    const recordErrors = wateringRecords.map(record => getSyncStatus(record.id, 'watering').error).filter(Boolean)
+    const error = [...plantErrors, ...recordErrors][0] // 取第一个错误
+    
+    return {
+      isSyncing,
+      lastSyncTime: lastGlobalSync,
+      error,
+      plantsUpdated: lastSyncResult.plantsUpdated,
+      recordsUpdated: lastSyncResult.recordsUpdated
+    }
+  }, [plants, wateringRecords, lastGlobalSync, getSyncStatus, lastSyncResult])
 
   // 手动触发同步
   const triggerSync = useCallback(async () => {
@@ -31,18 +49,14 @@ export function useSmartSync() {
       return
     }
 
-    setSyncState(prev => ({ ...prev, isSyncing: true, error: undefined }))
-
     try {
       const result = await syncService.smartSync()
       
-      setSyncState(prev => ({
-        ...prev,
-        isSyncing: false,
-        lastSyncTime: Date.now(),
+      // 更新最后同步结果
+      setLastSyncResult({
         plantsUpdated: result.plantsUpdated,
         recordsUpdated: result.recordsUpdated
-      }))
+      })
 
       // 如果有更新，显示通知
       if (result.plantsUpdated > 0 || result.recordsUpdated > 0) {
@@ -58,12 +72,6 @@ export function useSmartSync() {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '同步失败'
       
-      setSyncState(prev => ({
-        ...prev,
-        isSyncing: false,
-        error: errorMessage
-      }))
-
       addNotification({
         title: '同步失败',
         message: errorMessage,

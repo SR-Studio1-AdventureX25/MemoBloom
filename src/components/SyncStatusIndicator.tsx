@@ -43,18 +43,32 @@ export default function SyncStatusIndicator({ className }: SyncStatusIndicatorPr
     )
   }
 
-  // 显示上次同步时间
-  const lastSyncText = syncState.lastSyncTime > 0 
-    ? `${Math.floor((Date.now() - syncState.lastSyncTime) / (1000 * 60))}分钟前同步`
-    : '暂未同步'
+  // 显示上次同步时间和结果
+  const getLastSyncText = () => {
+    if (syncState.lastSyncTime === 0) {
+      return '暂未同步'
+    }
+    
+    const minutesAgo = Math.floor((Date.now() - syncState.lastSyncTime) / (1000 * 60))
+    const timeText = minutesAgo === 0 ? '刚刚同步' : `${minutesAgo}分钟前同步`
+    
+    // 如果有同步结果，显示更新数量
+    if (syncState.plantsUpdated > 0 || syncState.recordsUpdated > 0) {
+      const updateText = `(更新${syncState.plantsUpdated + syncState.recordsUpdated}项)`
+      return `${timeText} ${updateText}`
+    }
+    
+    return timeText
+  }
 
   return (
     <button 
       onClick={triggerSync}
-      className={cn('flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm hover:bg-green-200 transition-colors', className)}
+      className={cn('flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm hover:bg-green-200 transition-all duration-200', className)}
+      title="点击手动同步"
     >
       <div className="w-2 h-2 rounded-full bg-green-500" />
-      <span>{lastSyncText}</span>
+      <span>{getLastSyncText()}</span>
     </button>
   )
 }

@@ -4,6 +4,7 @@ import { useAppStore } from '@/store'
 // import { apiService } from '@/services/api'
 import VideoBackground from '@/components/VideoBackground'
 import MicrophoneButton from '@/components/MicrophoneButton'
+import SyncStatusIndicator from '@/components/SyncStatusIndicator'
 
 // 常量
 const LOADING_TEXT = '检查植物状态中...'
@@ -315,6 +316,9 @@ export default function HomePage() {
   if (currentPlant) {
     return (
       <div className="relative min-h-screen overflow-hidden">
+        {/* 同步状态指示器 */}
+        <SyncStatusIndicator className="absolute top-4 left-4 z-10" />
+
         {/* 在线状态指示器 */}
         <div className="absolute top-4 right-4 z-10 flex items-center space-x-2 bg-black/20 backdrop-blur-sm rounded-full px-3 py-2">
           <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-400' : 'bg-red-400'}`} />
