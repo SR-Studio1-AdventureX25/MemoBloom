@@ -74,6 +74,51 @@ const DateDisplay = memo(() => {
 
 DateDisplay.displayName = 'DateDisplay'
 
+// 消息气泡组件
+interface MessageBubbleProps {
+  message?: string
+  className?: string
+}
+
+const MessageBubble = memo<MessageBubbleProps>(({ 
+  message, 
+  className = "" 
+}) => {
+  // 判断是否有消息内容
+  const hasMessage = message && message.trim().length > 0
+  const displayMessage = message || ""
+  
+  return (
+    <div 
+      className={`absolute top-56 left-1/2 transform -translate-x-1/2 z-10 transition-opacity duration-500 ease-in-out ${className}`}
+      style={{ opacity: hasMessage ? 1 : 0 }}
+    >
+      <div className="relative inline-block">
+        {/* SVG 气泡背景 */}
+        <svg width="293" height="118" viewBox="0 0 293 118" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-lg transform scale-x-[-1]">
+          {/* 简化的装饰线条 */}
+          <path d="M8 35C28 30 48 28 68 30M72 28C92 27 107 28.5 117 30" stroke="#FF1744" strokeWidth="3.5" strokeLinecap="round" fill="none" opacity="0.9"/>
+          <path d="M195 2C215 -1 235 -1 255 2M270 5C285 12 295 26 296 30" stroke="#FFD600" strokeWidth="4" strokeLinecap="round" fill="none" opacity="0.9"/>
+          <path d="M297 45C294 65 285 83 280 85" stroke="#1DE9B6" strokeWidth="3.8" strokeLinecap="round" fill="none" opacity="0.8"/>
+          <path d="M250 102C210 104 180 102 160 110" stroke="#E91E63" strokeWidth="3.5" strokeLinecap="round" fill="none" opacity="0.9"/>
+          <path d="M-2 50C-5 70 2 87 8 89M-7 35C0 15 10 7 20 5" stroke="#8BC34A" strokeWidth="4" strokeLinecap="round" fill="none" opacity="0.8"/>
+          {/* 主气泡形状 */}
+          <path d="M129.176 94.645C129.176 99.3906 128.028 110.305 123.434 116C129.45 115.492 144.517 110.509 156.658 94.645C173.476 92.9501 211.54 89.662 229.26 90.0688C251.41 90.5773 287.095 94.1364 290.787 51.9347C294.479 9.733 249.359 7.69922 221.467 7.69922C193.574 7.69922 92.6703 1.08945 68.8799 2.10636C45.0895 3.12327 3.25133 -0.944528 2.02079 49.9009C0.790251 100.746 54.5236 94.645 72.9817 94.645C91.4398 94.645 123.433 89.0522 129.176 94.645Z" fill="white" stroke="white" strokeWidth="2.16" strokeLinecap="round"/>
+        </svg>
+        
+        {/* 气泡内的文字 */}
+        <div className="absolute inset-0 flex items-center justify-center px-2">
+          <span className="text-gray-800 text-xl leading-relaxed text-center font-medium relative -top-2" style={{ fontFamily: "'DingTalk JinBuTi', 'DingTalk Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" }}>
+            {displayMessage}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+})
+
+MessageBubble.displayName = 'MessageBubble'
+
 // NFT 状态指示器组件
 const NFTIndicator = memo(() => (
   <div className="absolute top-20 right-4 z-10">
@@ -89,7 +134,7 @@ NFTIndicator.displayName = 'NFTIndicator'
 interface MicrophoneContainerProps {
   plantId: string
   currentGrowthValue: number
-  onWateringComplete: (success: boolean, message?: string) => void
+  onWateringComplete: (success: boolean, message?: string, emotion?: 'happy' | 'sad') => void
   onRecordingStateChange: (isRecording: boolean) => void
 }
 
@@ -115,6 +160,7 @@ export default function HomePage() {
   const { plants, currentPlantId, setPlants, isOnline, addNotification } = useAppStore()
   const [isLoading, setIsLoading] = useState(true)
   const [isRecording, setIsRecording] = useState(false)
+  const [aiMessage, setAiMessage] = useState<string>('') // AI生成的消息
   const navigate = useNavigate()
 
   // 计算当前植物 - 使用 useMemo 优化性能
@@ -211,7 +257,7 @@ export default function HomePage() {
   }, [checkPlantStatus])
 
   // 浇水完成回调 - 使用 useCallback 优化
-  const handleWateringComplete = useCallback((success: boolean, message?: string) => {
+  const handleWateringComplete = useCallback((success: boolean, message?: string, emotion?: 'happy' | 'sad') => {
     const notificationTitle = success ? '浇水成功' : '浇水失败'
     const notificationMessage = message || (success ? '你的植物很开心！' : '请稍后重试')
     const notificationType = success ? 'success' : 'error'
@@ -223,20 +269,29 @@ export default function HomePage() {
       read: false
     })
     
-    // 模拟逻辑：无论浇水是否成功，随机选择高兴或悲伤
+    // 如果有AI生成的消息，显示在气泡中
+    if (success && message && message !== '浇水成功！你的植物很开心 🌱') {
+      setAiMessage(message)
+      
+      // 5秒后清除消息
+      setTimeout(() => {
+        setAiMessage('')
+      }, 5000)
+    }
+    
+    // 使用AI分析的情感结果，如果没有则使用默认的happy
     if (currentPlant) {
-      const emotions = ['happy', 'sad'] as const
-      const randomEmotion = emotions[Math.floor(Math.random() * emotions.length)]
+      const finalEmotion = emotion || 'happy'
       const stage = currentPlant.currentGrowthStage
       
       // 更新播放列表：先播放normal，然后播放情感视频
       const { updateVideoPlaylist } = useAppStore.getState()
       updateVideoPlaylist([
         `plant-${stage}-normal`,
-        `plant-${stage}-${randomEmotion}`
+        `plant-${stage}-${finalEmotion}`
       ])
       
-      console.log(`植物情感反应: ${randomEmotion}, 阶段: ${stage}`)
+      console.log(`植物情感反应: ${finalEmotion}, 阶段: ${stage}`)
       
       // 更新通知消息以反映植物的情感状态
       const emotionMessages = {
@@ -245,8 +300,8 @@ export default function HomePage() {
       } as const
       
       addNotification({
-        title: `植物情感反应: ${randomEmotion === 'happy' ? '开心' : '悲伤'}`,
-        message: emotionMessages[randomEmotion],
+        title: `植物情感反应: ${finalEmotion === 'happy' ? '开心' : '悲伤'}`,
+        message: emotionMessages[finalEmotion],
         type: 'info',
         read: false
       })
@@ -258,7 +313,7 @@ export default function HomePage() {
         console.error('刷新植物数据失败:', error)
       })
     }
-  }, [addNotification, isOnline, currentPlant, fetchPlants])
+  }, [addNotification, isOnline, currentPlant, fetchPlants, setAiMessage])
 
   // 重新加载回调
   const handleReload = useCallback(() => {
@@ -283,6 +338,9 @@ export default function HomePage() {
 
         {/* 日期显示 */}
         <DateDisplay />
+
+        {/* 消息气泡 - 显示AI生成的消息 */}
+        <MessageBubble message={aiMessage} />
 
         {/* 视频背景 */}
         <VideoBackground showOverlay={isRecording} />

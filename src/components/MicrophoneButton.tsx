@@ -1,13 +1,15 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAppStore } from '@/store'
 import { audioRecorderService, AudioRecorderService } from '@/services/audioRecorder'
+import { speechRecognitionService } from '@/services/speechRecognition'
+import { aiAnalysisService } from '@/services/aiAnalysis'
 import { apiService } from '@/services/api'
 import type { OfflineWateringItem } from '@/types'
 
 interface MicrophoneButtonProps {
   plantId: string
   currentGrowthValue: number
-  onWateringComplete: (success: boolean, message?: string) => void
+  onWateringComplete: (success: boolean, message?: string, emotion?: 'happy' | 'sad') => void
   onRecordingStateChange?: (isRecording: boolean) => void
 }
 
@@ -89,7 +91,84 @@ export default function MicrophoneButton({
 
     try {
       const wateringTime = new Date().toISOString()
+      let analysisMessage = '植物收到了你的心声🌱'
+      let emotionResult: 'happy' | 'sad' = 'happy'
 
+      // 步骤1: 语音识别
+      addNotification({
+        title: '正在识别语音...',
+        message: '请稍等，正在转换你的声音',
+        type: 'info',
+        read: false
+      })
+
+      const speechResult = await speechRecognitionService.recognizeAudio(audioBlob)
+      
+      if (speechResult.success && speechResult.text) {
+        console.log('语音识别成功:', speechResult.text)
+        
+        // 步骤2: AI分析
+        addNotification({
+          title: '正在分析情感...',
+          message: '正在理解你的心情',
+          type: 'info',
+          read: false
+        })
+
+        const aiResult = await aiAnalysisService.analyzeText(speechResult.text)
+        
+        if (aiResult.success) {
+          analysisMessage = aiResult.message || analysisMessage
+          emotionResult = aiResult.emotion || emotionResult
+          
+          console.log('AI分析结果:', { message: analysisMessage, emotion: emotionResult })
+          
+          // 步骤3: 更新植物情感状态和消息显示
+          const { updateVideoPlaylist } = useAppStore.getState()
+          
+          // 获取当前植物信息
+          const { plants } = useAppStore.getState()
+          const currentPlant = plants.find(p => p.id === plantId)
+          
+          if (currentPlant) {
+            const stage = currentPlant.currentGrowthStage
+            
+            // 更新播放列表：先播放normal，然后播放情感视频
+            updateVideoPlaylist([
+              `plant-${stage}-normal`,
+              `plant-${stage}-${emotionResult}`
+            ])
+            
+            console.log(`植物情感反应: ${emotionResult}, 阶段: ${stage}`)
+          }
+
+          // 通知用户AI分析结果
+          addNotification({
+            title: `植物情感反应: ${emotionResult === 'happy' ? '开心' : '悲伤'}`,
+            message: analysisMessage,
+            type: 'success',
+            read: false
+          })
+        } else {
+          console.warn('AI分析失败，使用默认值:', aiResult.error)
+          addNotification({
+            title: 'AI分析失败',
+            message: '使用默认情感反应',
+            type: 'warning',
+            read: false
+          })
+        }
+      } else {
+        console.warn('语音识别失败，使用默认值:', speechResult.error)
+        addNotification({
+          title: '语音识别失败',
+          message: '植物依然感受到了你的关怀',
+          type: 'warning',
+          read: false
+        })
+      }
+
+      // 步骤4: 提交浇水记录
       if (isOnline) {
         // 在线提交
         try {
@@ -100,7 +179,7 @@ export default function MicrophoneButton({
             wateringTime
           })
 
-          onWateringComplete(true, '浇水成功！你的植物很开心 🌱')
+          onWateringComplete(true, analysisMessage, emotionResult)
         } catch (error) {
           console.error('在线浇水失败:', error)
           // 在线失败，添加到离线队列
@@ -120,7 +199,7 @@ export default function MicrophoneButton({
             type: 'warning',
             read: false
           })
-          onWateringComplete(true, '浇水已保存，将在联网后同步')
+          onWateringComplete(true, '浇水已保存，将在联网后同步', emotionResult)
         }
       } else {
         // 离线模式，直接添加到队列
@@ -142,7 +221,7 @@ export default function MicrophoneButton({
           type: 'info',
           read: false
         })
-        onWateringComplete(true, '离线浇水成功，记录已保存')
+        onWateringComplete(true, '离线浇水成功，记录已保存', emotionResult)
       }
     } catch (error) {
       console.error('浇水提交失败:', error)
