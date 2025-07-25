@@ -141,7 +141,7 @@ const DigitalCalendar = memo(function ({ scrollLeft = 0 }: { scrollLeft?: number
   );
 });
 
-const PlantBox = memo(function ({plant, offset}: {plant: Plant, offset: {x: number, y: number}}) {
+const PlantBox = memo(function ({offset}: {plant: Plant, offset: {x: number, y: number}}) {
   return (<>
     <div 
       className="w-32 h-32 bg-cover bg-center bg-no-repeat transition-transform duration-300"
