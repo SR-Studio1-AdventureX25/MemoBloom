@@ -34,7 +34,7 @@ const AudioBox = memo(function ({audioRecord, offset, onClick}: {audioRecord: Wa
       }}
       onClick={onClick}
     >
-        <img src={audioRecord.nftMinted ? "/CD-VIP.png" : "/CD.png"} className="scale-85" />
+        <img src={audioRecord.nftMinted ? "/CDVIP.png" : "/CD.png"} className="scale-85" />
     </div>
   </>);
 });
@@ -111,7 +111,7 @@ const AudioDetailModal = memo(function ({
     >
       {/* 动画唱片 */}
       <img 
-        src={audioRecord.nftMinted ? "/CD-VIP.png" : "/CD.png"}
+        src={audioRecord.nftMinted ? "/CDVIP.png" : "/CD.png"}
         className={`fixed z-60 transition-all duration-700 ease-out ${!animatingDisc && !isClosing ? 'animate-spin-slow' : ''}`}
         style={{
           left: (animatingDisc && !isClosing) || isClosing ? `${animationData.startX}px` : `calc(50vw - 160px)`,
