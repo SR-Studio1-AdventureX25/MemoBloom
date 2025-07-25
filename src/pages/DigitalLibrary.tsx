@@ -19,7 +19,7 @@ const PlantBox = memo(function ({offset}: {plant: Plant, offset: {x: number, y: 
   </>);
 });
 
-const AudioBox = memo(function ({offset}: {audioRecord: WateringRecord, offset: {x: number, y: number}}){
+const AudioBox = memo(function ({audioRecord, offset}: {audioRecord: WateringRecord, offset: {x: number, y: number}}){
   return (<>
     <div
       className="w-32 h-32 bg-cover bg-center bg-no-repeat transition-transform duration-300"
@@ -32,7 +32,7 @@ const AudioBox = memo(function ({offset}: {audioRecord: WateringRecord, offset: 
           drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4))
         `
       }}>
-        <img src="/CD.png" className="scale-85" />
+        <img src={audioRecord.nftMinted ? "/CD-VIP.png" : "/CD.png"} className="scale-85" />
     </div>
   </>);
 });
@@ -100,18 +100,23 @@ export default function DigitalLibraryPage() {
       id: "audio-1",
       plantId: "plant-1",
       plantGrowthValue: 85,
+      memoryFile: "memory_token_abc123",
       memoryText: "今天心情很好，和朋友聊天很开心",
       emotionTags: ["开心", "满足"],
       emotionIntensity: 8,
       growthIncrement: 5,
       coreEvent: "与朋友聚会",
       nftMinted: true,
-      wateringTime: "2024-01-15T10:30:00Z"
+      nftAddress: "0x1234567890abcdef1234567890abcdef12345678",
+      nftWalletAddress: "0xabcdef1234567890abcdef1234567890abcdef12",
+      wateringTime: "2024-01-15T10:30:00Z",
+      nftMintTime: "2024-01-15T11:00:00Z"
     },
     {
       id: "audio-2",
       plantId: "plant-2", 
       plantGrowthValue: 65,
+      memoryFile: "memory_token_def456",
       memoryText: "工作很忙，但是很充实",
       emotionTags: ["忙碌", "充实"],
       emotionIntensity: 6,
@@ -124,6 +129,7 @@ export default function DigitalLibraryPage() {
       id: "audio-3",
       plantId: "plant-3",
       plantGrowthValue: 35,
+      memoryFile: "memory_token_ghi789",
       memoryText: "学到了新东西，很有成就感",
       emotionTags: ["兴奋", "成就感"],
       emotionIntensity: 7,
