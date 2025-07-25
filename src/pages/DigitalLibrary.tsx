@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 
+
+
 export default function DigitalLibraryPage() {
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -10,6 +12,7 @@ export default function DigitalLibraryPage() {
       scrollAreaRef.current.scrollLeft = 90;
     }
   }, []);
+
 
   return (
     <div 

@@ -20,11 +20,15 @@ const PageContainer = () => {
   const touchInfoRef = useRef<TouchInfo | null>(null)
   const animationFrameRef = useRef<number | undefined>(undefined)
   const rafRef = useRef<number | undefined>(undefined) // 用于节流的RAF引用
+  const wheelAccumulatorRef = useRef<number>(0) // 滚轮累积值
+  const wheelTimeoutRef = useRef<NodeJS.Timeout | null>(null) // 滚轮重置定时器
 
   // 手势检测配置
   const SWIPE_THRESHOLD = 50 // 最小滑动距离
   const VELOCITY_THRESHOLD = 0.3 // 最小滑动速度
   const ANIMATION_DURATION = 600 // 动画持续时间(ms)
+  const WHEEL_THRESHOLD = 100 // 滚轮累积阈值
+  const WHEEL_RESET_DELAY = 150 // 滚轮累积重置延迟(ms)
 
   // 开始动画
   const startAnimation = useCallback((targetProgress: number, duration: number = ANIMATION_DURATION) => {
@@ -165,8 +169,68 @@ const PageContainer = () => {
     touchInfoRef.current = null
   }, [isAnimating, currentPage, startAnimation])
 
+  // 鼠标滚轮处理函数
+  const handleWheel = useCallback((e: WheelEvent) => {
+    // 检查是否点击在麦克风按钮区域
+    if ((e.target as Element).closest('[data-microphone-button]')) {
+      return // 直接返回，不处理页面切换
+    }
 
-  // 设置触摸事件监听器
+    // 检查是否点击在横向滚动区域
+    if ((e.target as Element).closest('[data-horizontal-scroll]')) {
+      return // 直接返回，不处理页面切换，让横向滚动正常工作
+    }
+
+    if (isAnimating) return
+
+    // 防止默认滚动行为
+    e.preventDefault()
+
+    // 累积滚轮值
+    wheelAccumulatorRef.current += e.deltaY
+
+    // 清除之前的重置定时器
+    if (wheelTimeoutRef.current) {
+      clearTimeout(wheelTimeoutRef.current)
+    }
+
+    // 检查是否达到阈值
+    const absAccumulator = Math.abs(wheelAccumulatorRef.current)
+    if (absAccumulator >= WHEEL_THRESHOLD) {
+      const isScrollingDown = wheelAccumulatorRef.current > 0
+
+      // 根据当前页面和滚动方向决定切换
+      if (isScrollingDown) {
+        // 向下滚轮：home → library → wallet
+        if (currentPage === 'home') {
+          setCurrentPage('library')
+          startAnimation(1)
+        } else if (currentPage === 'library') {
+          setCurrentPage('wallet')
+          startAnimation(2)
+        }
+      } else {
+        // 向上滚轮：wallet → library → home
+        if (currentPage === 'wallet') {
+          setCurrentPage('library')
+          startAnimation(1)
+        } else if (currentPage === 'library') {
+          setCurrentPage('home')
+          startAnimation(0)
+        }
+      }
+
+      // 重置累积值
+      wheelAccumulatorRef.current = 0
+    } else {
+      // 设置重置定时器
+      wheelTimeoutRef.current = setTimeout(() => {
+        wheelAccumulatorRef.current = 0
+      }, WHEEL_RESET_DELAY)
+    }
+  }, [isAnimating, currentPage, startAnimation])
+
+  // 设置触摸事件和滚轮事件监听器
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
@@ -175,15 +239,19 @@ const PageContainer = () => {
     container.addEventListener('touchstart', handleNativeTouchStart, { passive: false })
     container.addEventListener('touchmove', handleNativeTouchMove, { passive: false })
     container.addEventListener('touchend', handleNativeTouchEnd, { passive: false })
+    
+    // 添加滚轮事件监听器
+    container.addEventListener('wheel', handleWheel, { passive: false })
 
     return () => {
       container.removeEventListener('touchstart', handleNativeTouchStart)
       container.removeEventListener('touchmove', handleNativeTouchMove)
       container.removeEventListener('touchend', handleNativeTouchEnd)
+      container.removeEventListener('wheel', handleWheel)
     }
-  }, [handleNativeTouchStart, handleNativeTouchMove, handleNativeTouchEnd])
+  }, [handleNativeTouchStart, handleNativeTouchMove, handleNativeTouchEnd, handleWheel])
 
-  // 清理动画帧和RAF节流
+  // 清理动画帧、RAF节流和滚轮定时器
   useEffect(() => {
     return () => {
       if (animationFrameRef.current) {
@@ -191,6 +259,9 @@ const PageContainer = () => {
       }
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current)
+      }
+      if (wheelTimeoutRef.current) {
+        clearTimeout(wheelTimeoutRef.current)
       }
     }
   }, [])
