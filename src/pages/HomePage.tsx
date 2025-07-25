@@ -158,7 +158,7 @@ const MicrophoneContainer = memo<MicrophoneContainerProps>(({
 MicrophoneContainer.displayName = 'MicrophoneContainer'
 
 export default function HomePage() {
-  const { plants, currentPlantId, setPlants, isOnline, addNotification } = useAppStore()
+  const { plants, currentPlantId, isOnline, addNotification } = useAppStore()
   const [isLoading, setIsLoading] = useState(true)
   const [isRecording, setIsRecording] = useState(false)
   const [aiMessage, setAiMessage] = useState<string>('') // AI生成的消息
@@ -179,22 +179,6 @@ export default function HomePage() {
     return true
   }, [plants, currentPlantId, navigate])
 
-  // 统一的植物数据获取函数
-  const fetchPlants = useCallback(async () => {
-    // try {
-    //   const response = await apiService.plants.getAll()
-    //   const serverPlants = response.data
-
-    //   if (serverPlants && serverPlants.length > 0) {
-    //     setPlants(serverPlants)
-    //     return serverPlants
-    //   }
-    //   return []
-    // } catch (error) {
-    //   console.error('获取植物数据失败:', error)
-    //   throw error
-    // }
-  }, [setPlants])
 
   // 处理离线且无本地数据的情况
   const handleOfflineWithNoData = useCallback(() => {
@@ -210,25 +194,15 @@ export default function HomePage() {
     
     setIsLoading(false)
     
-    // 如果在线，尝试同步最新数据
-    if (isOnline) {
-      try {
-        await fetchPlants() // 仅同步数据
-      } catch (error) {
-        console.error('同步植物数据失败:', error)
-      }
-    }
-  }, [checkCurrentPlant, isOnline, fetchPlants])
+    // 数据同步现在由SyncStatusIndicator和useSmartSync处理
+  }, [checkCurrentPlant])
 
   // 处理在线且无本地数据的情况
   const handleOnlineWithNoData = useCallback(async () => {
-    try {
-      await fetchPlants() // 获取数据
-      // 注意：如果服务器上没有植物，路由会自动处理跳转到创建页面
-    } catch {
-      // 网络错误时，路由会自动处理跳转
-    }
-  }, [fetchPlants])
+    // 无本地数据时，直接设置加载完成
+    // 数据获取现在由SyncStatusIndicator和useSmartSync处理
+    setIsLoading(false)
+  }, [])
 
   // 检查植物状态 - 简化后的主逻辑
   const checkPlantStatus = useCallback(async () => {
@@ -295,13 +269,8 @@ export default function HomePage() {
       })
     }
     
-    // 刷新植物数据
-    if (success && isOnline && currentPlant) {
-      fetchPlants().catch(error => {
-        console.error('刷新植物数据失败:', error)
-      })
-    }
-  }, [addNotification, isOnline, currentPlant, fetchPlants, setAiMessage])
+    // 数据刷新现在由SyncStatusIndicator和useSmartSync自动处理
+  }, [addNotification, isOnline, currentPlant, setAiMessage])
 
   // 重新加载回调
   const handleReload = useCallback(() => {

@@ -4,7 +4,7 @@ import { audioRecorderService, AudioRecorderService } from '@/services/audioReco
 import { speechRecognitionService } from '@/services/speechRecognition'
 import { aiAnalysisService } from '@/services/aiAnalysis'
 import { apiService } from '@/services/api'
-import type { OfflineWateringItem } from '@/types'
+import type { OfflineWateringItem, WateringRecord } from '@/types'
 
 interface MicrophoneButtonProps {
   plantId: string
@@ -93,6 +93,7 @@ export default function MicrophoneButton({
       const wateringTime = new Date().toISOString()
       let analysisMessage = '植物收到了你的心声🌱'
       let emotionResult: 'happy' | 'sad' = 'happy'
+      let recognizedText = ''
 
       // 步骤1: 语音识别
       addNotification({
@@ -105,7 +106,8 @@ export default function MicrophoneButton({
       const speechResult = await speechRecognitionService.recognizeAudio(audioBlob)
       
       if (speechResult.success && speechResult.text) {
-        console.log('语音识别成功:', speechResult.text)
+        recognizedText = speechResult.text
+        console.log('语音识别成功:', recognizedText)
         
         // 步骤2: AI分析
         addNotification({
@@ -115,7 +117,7 @@ export default function MicrophoneButton({
           read: false
         })
 
-        const aiResult = await aiAnalysisService.analyzeText(speechResult.text)
+        const aiResult = await aiAnalysisService.analyzeText(recognizedText)
         
         if (aiResult.success) {
           analysisMessage = aiResult.message || analysisMessage
@@ -169,22 +171,59 @@ export default function MicrophoneButton({
       }
 
       // 步骤4: 提交浇水记录
+      const { addWateringRecord } = useAppStore.getState()
+      
       if (isOnline) {
         // 在线提交
         try {
-          await apiService.watering.water({
+          const response = await apiService.watering.water({
             plantId,
             plantGrowthValue: currentGrowthValue,
             audioFile: audioBlob,
             wateringTime
           })
 
+          // 立即创建并保存本地浇水记录
+          const localRecord: WateringRecord = {
+            id: response.data.recordId,
+            plantId,
+            plantGrowthValue: currentGrowthValue,
+            memoryText: recognizedText || '语音识别失败',
+            emotionTags: [emotionResult],
+            emotionIntensity: emotionResult === 'happy' ? 0.8 : 0.6,
+            growthIncrement: 5, // 默认增长值
+            coreEvent: analysisMessage,
+            nftMinted: false,
+            wateringTime: response.data.wateringTime
+          }
+
+          addWateringRecord(localRecord)
+          console.log('浇水记录已保存到本地store:', localRecord.id)
+
           onWateringComplete(true, analysisMessage, emotionResult)
         } catch (error) {
           console.error('在线浇水失败:', error)
-          // 在线失败，添加到离线队列
+          
+          // 在线失败，创建临时本地记录并添加到离线队列
+          const tempRecordId = `offline_${Date.now()}`
+          
+          const localRecord: WateringRecord = {
+            id: tempRecordId,
+            plantId,
+            plantGrowthValue: currentGrowthValue,
+            memoryText: recognizedText || '语音识别失败',
+            emotionTags: [emotionResult],
+            emotionIntensity: emotionResult === 'happy' ? 0.8 : 0.6,
+            growthIncrement: 5,
+            coreEvent: analysisMessage,
+            nftMinted: false,
+            wateringTime
+          }
+
+          addWateringRecord(localRecord)
+          
           await addToOfflineQueue({
-            id: `offline_${Date.now()}`,
+            id: tempRecordId,
             plantId,
             plantGrowthValue: currentGrowthValue,
             audioBlob,
@@ -192,6 +231,8 @@ export default function MicrophoneButton({
             retryCount: 0,
             createdAt: new Date()
           })
+
+          console.log('浇水记录已保存到本地store（离线队列）:', tempRecordId)
 
           addNotification({
             title: '已保存到离线队列',
@@ -202,9 +243,26 @@ export default function MicrophoneButton({
           onWateringComplete(true, '浇水已保存，将在联网后同步', emotionResult)
         }
       } else {
-        // 离线模式，直接添加到队列
+        // 离线模式，创建本地记录并添加到队列
+        const tempRecordId = `offline_${Date.now()}`
+        
+        const localRecord: WateringRecord = {
+          id: tempRecordId,
+          plantId,
+          plantGrowthValue: currentGrowthValue,
+          memoryText: recognizedText || '语音识别失败',
+          emotionTags: [emotionResult],
+          emotionIntensity: emotionResult === 'happy' ? 0.8 : 0.6,
+          growthIncrement: 5,
+          coreEvent: analysisMessage,
+          nftMinted: false,
+          wateringTime
+        }
+
+        addWateringRecord(localRecord)
+
         const offlineItem: OfflineWateringItem = {
-          id: `offline_${Date.now()}`,
+          id: tempRecordId,
           plantId,
           plantGrowthValue: currentGrowthValue,
           audioBlob,
@@ -214,6 +272,8 @@ export default function MicrophoneButton({
         }
 
         addToOfflineQueue(offlineItem)
+        
+        console.log('浇水记录已保存到本地store（离线模式）:', tempRecordId)
         
         addNotification({
           title: '离线浇水成功',

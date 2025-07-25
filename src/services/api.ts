@@ -144,11 +144,11 @@ interface BackendWaterResponse {
     '关联植物ID'?: string[]
     '植物成长值'?: number
     '记忆内容'?: Array<{ file_token: string }>
-    '记忆文本'?: string
+    '记忆文本'?: Array<{ text: string }>
     '情绪标签'?: string[]
     '情绪强度'?: number
     '生长值增量'?: number
-    '核心事件'?: string
+    '核心事件'?: Array<{ text: string }>
     'NFT铸造状态'?: boolean
     'NFT地址'?: string
     'NFT所属用户地址'?: string
@@ -228,11 +228,11 @@ const mapBackendWaterToFrontend = (backendData: BackendWaterResponse): WateringR
     plantId: detail['关联植物ID']?.[0] || '',
     plantGrowthValue: detail['植物成长值'] || 0,
     memoryFile: detail['记忆内容']?.[0]?.file_token,
-    memoryText: detail['记忆文本'],
+    memoryText: detail['记忆文本']?.[0]?.text,
     emotionTags: detail['情绪标签'],
     emotionIntensity: detail['情绪强度'],
     growthIncrement: detail['生长值增量'],
-    coreEvent: detail['核心事件'],
+    coreEvent: detail['核心事件']?.[0]?.text,
     nftMinted: detail['NFT铸造状态'] || false,
     nftAddress: detail['NFT地址'],
     nftWalletAddress: detail['NFT所属用户地址'],

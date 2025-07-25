@@ -12,7 +12,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,mp4,webm}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,mp4,webm,mp3}'],
         maximumFileSizeToCacheInBytes: 110 * 1024 * 1024, // 110MB
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/],
@@ -40,7 +40,7 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /\.(?:mp4|webm|ogg|avi)$/,
+            urlPattern: /\.(?:mp4|webm|ogg|avi|mp3)$/,
             handler: 'CacheFirst',
             options: {
               cacheName: 'videos-cache',
