@@ -43,7 +43,7 @@ export default function DigitalLibraryPage() {
   // 生成随机偏移的函数
   const generateRandomOffset = () => ({
     x: (Math.random() - 0.5) * 40, // -20px 到 20px 的随机水平偏移
-    y: (Math.random() - 0.5) * 30  // -15px 到 15px 的随机垂直偏移
+    y: (Math.random() - 0.5) * 10  // -15px 到 15px 的随机垂直偏移
   });
 
   // 为每个box生成随机偏移
