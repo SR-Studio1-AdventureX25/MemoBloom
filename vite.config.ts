@@ -15,7 +15,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,mp4,webm,mp3}'],
         maximumFileSizeToCacheInBytes: 110 * 1024 * 1024, // 110MB
         navigateFallback: 'index.html',
-        navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/],
+        navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.(pdf|doc|docx|txt|zip|rar|exe|dmg)$/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/api\./i,
