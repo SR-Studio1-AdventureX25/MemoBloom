@@ -23,10 +23,10 @@ export default function DigitalLibraryPage() {
       <div 
         ref={scrollAreaRef}
         data-horizontal-scroll
-        className="absolute top-1/4 -translate-y-1/2 left-0 w-full overflow-x-auto overflow-y-hidden scrollbar-hidden pl-6"
+        className="absolute top-1/4 -translate-y-1/2 left-0 w-full overflow-x-auto overflow-y-hidden scrollbar-hidden px-6"
       >
         {/* 内容容器 - 足够宽以容纳所有卡片 */}
-        <div className="w-[2400px] flex flex-col gap-5">
+        <div className="flex flex-col gap-5">
           {/* 第一行卡片 */}
           <div className="flex gap-4">
             {Array.from({ length: 10 }, (_, i) => (
