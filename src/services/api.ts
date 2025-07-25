@@ -19,7 +19,7 @@ const getOnlineActions = () => {
 
 // 创建axios实例
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -176,16 +176,16 @@ const mapChineseToEnglishGrowthStage = (chineseStage: string): string => {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const mapEnglishToChineseGrowthStage = (englishStage: string): string => {
-  const stageMap: Record<string, string> = {
-    'seed': '种子',
-    'sprout': '发芽',
-    'mature': '含苞',
-    'flowering': '开花',
-    'fruiting': '结果'
-  }
-  return stageMap[englishStage] || '种子'
-}
+// const mapEnglishToChineseGrowthStage = (englishStage: string): string => {
+//   const stageMap: Record<string, string> = {
+//     'seed': '种子',
+//     'sprout': '发芽',
+//     'mature': '含苞',
+//     'flowering': '开花',
+//     'fruiting': '结果'
+//   }
+//   return stageMap[englishStage] || '种子'
+// }
 
 const mapChineseToEnglishVariety = (chineseVariety: string): string => {
   const varietyMap: Record<string, string> = {
