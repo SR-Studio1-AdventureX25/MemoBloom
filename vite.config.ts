@@ -13,7 +13,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,mp4,webm}'],
-        maximumFileSizeToCacheInBytes: 50 * 1024 * 1024, // 50MB
+        maximumFileSizeToCacheInBytes: 110 * 1024 * 1024, // 110MB
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/],
         runtimeCaching: [
@@ -45,8 +45,8 @@ export default defineConfig({
             options: {
               cacheName: 'videos-cache',
               expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+                maxEntries: 20,
+                maxAgeSeconds: 60 * 60 * 24 * 60, // 60 days
               },
             },
           },

@@ -1,6 +1,6 @@
 import { useAppInitialization } from '@/hooks/useAppInitialization'
 import LoadingProgress from '@/components/LoadingProgress'
-import HomePage from '@/pages/HomePage'
+import PageContainer from '@/components/PageContainer'
 import CreatePlant from '@/pages/CreatePlant'
 import PWAInstallPrompt from '@/components/PWAInstallPrompt'
 import PWAUpdatePrompt from '@/components/PWAUpdatePrompt'
@@ -17,8 +17,8 @@ function RootRoute() {
     return <Navigate to="/createplant" replace />
   }
   
-  // 有植物则显示主页
-  return <HomePage />
+  // 有植物则显示PageContainer（包含HomePage和DigitalLibrary）
+  return <PageContainer />
 }
 
 // CreatePlant 路由包装组件
