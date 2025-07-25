@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import HomePage from '@/pages/HomePage'
 import DigitalLibraryPage from '@/pages/DigitalLibrary'
 import WalletPage from '@/pages/WalletPage'
+import SyncStatusIndicator from '@/components/SyncStatusIndicator'
 
 type CurrentPage = 'home' | 'library' | 'wallet'
 
@@ -400,6 +401,9 @@ const PageContainer = () => {
           />
         )}
       </div>
+
+      {/* 同步状态指示器 */}
+      <SyncStatusIndicator className="absolute top-4 left-4 z-50" />
 
       {/* 页面指示器 - 极简设计 */}
       <div 

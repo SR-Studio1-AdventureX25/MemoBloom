@@ -2,7 +2,8 @@ import type {
   AppState, 
   Plant, 
   WateringRecord, 
-  OfflineWateringItem
+  OfflineWateringItem,
+  SyncStatus
 } from '@/types'
 
 // Store Actions接口定义
@@ -37,6 +38,16 @@ export interface AppActions {
   setVideoPlaylist: (playlist: string[]) => void
   setCurrentVideoIndex: (index: number) => void
   updateVideoPlaylist: (playlist: string[]) => void
+  
+  // 同步状态相关
+  setSyncStatus: (entityId: string, type: 'plant' | 'watering', status: Partial<SyncStatus>) => void
+  getSyncStatus: (entityId: string, type: 'plant' | 'watering') => SyncStatus
+  setLastGlobalSync: (timestamp: number) => void
+  
+  // 智能同步相关
+  syncPlant: (plantId: string) => Promise<Plant | null>
+  syncWateringRecord: (recordId: string) => Promise<WateringRecord | null>
+  syncIncompleteRecords: () => Promise<void>
 }
 
 // Store完整类型（状态 + 动作）

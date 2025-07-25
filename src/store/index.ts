@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
-import type { AppState, Plant, WateringRecord, OfflineWateringItem } from '@/types'
+import type { AppState, Plant, WateringRecord, OfflineWateringItem, SyncStatus } from '@/types'
 import type { AppStore } from './types'
+import { apiService } from '@/services/api'
 
 // 重新导出选择器函数以保持向后兼容性
 export { useNotificationActions, useOnlineActions } from './selectors'
@@ -9,18 +10,20 @@ export { useNotificationActions, useOnlineActions } from './selectors'
 export const useAppStore = create<AppStore>()(
   devtools(
     persist(
-      (set) => ({
-        // State - 初始状态（调试数据）
-        plants: [
-        ],
-        currentPlantId: '',
-        wateringRecords: [
-        ],
-        offlineWateringQueue: [],
+      (set, get) => ({
+        // State - 初始状态
+        plants: [] as Plant[],
+        currentPlantId: null,
+        wateringRecords: [] as WateringRecord[],
+        offlineWateringQueue: [] as OfflineWateringItem[],
         isOnline: true,
-        notifications: [],
+        notifications: [] as AppState['notifications'],
         videoPlaylist: ['plant-sprout-normal', 'plant-sprout-normal'], // 默认sprout阶段循环播放normal
         currentVideoIndex: 0,
+        // 同步状态管理
+        plantSyncStatus: {},
+        wateringRecordSyncStatus: {},
+        lastGlobalSync: 0,
 
         // Actions - 植物相关
         setPlants: (plants: Plant[]) => set({ plants }),
@@ -102,7 +105,116 @@ export const useAppStore = create<AppStore>()(
         updateVideoPlaylist: (playlist: string[]) => set({ 
           videoPlaylist: playlist,
           currentVideoIndex: 0 // 重置到第一个视频
-        })
+        }),
+
+        // Actions - 同步状态相关
+        setSyncStatus: (entityId: string, type: 'plant' | 'watering', status: Partial<SyncStatus>) => set((state) => {
+          const statusKey = type === 'plant' ? 'plantSyncStatus' : 'wateringRecordSyncStatus'
+          const currentStatus = state[statusKey][entityId] || { lastSync: 0, isComplete: false, isSyncing: false }
+          
+          return {
+            [statusKey]: {
+              ...state[statusKey],
+              [entityId]: { ...currentStatus, ...status }
+            }
+          } as Partial<AppState>
+        }),
+
+        getSyncStatus: (entityId: string, type: 'plant' | 'watering'): SyncStatus => {
+          const state = get()
+          const statusKey = type === 'plant' ? 'plantSyncStatus' : 'wateringRecordSyncStatus'
+          return state[statusKey][entityId] || { lastSync: 0, isComplete: false, isSyncing: false }
+        },
+
+        setLastGlobalSync: (timestamp: number) => set({ lastGlobalSync: timestamp }),
+
+        // Actions - 智能同步相关
+        syncPlant: async (plantId: string): Promise<Plant | null> => {
+          const state = get()
+          const { setSyncStatus, updatePlant } = state
+          
+          try {
+            setSyncStatus(plantId, 'plant', { isSyncing: true, error: undefined })
+            
+            // 从后端获取最新植物数据
+            const response = await apiService.plants.getById(plantId)
+            const updatedPlant = {
+              ...response.data,
+              lastSyncTime: Date.now(),
+              syncStatus: 'complete' as const
+            }
+            
+            // 更新本地植物数据
+            updatePlant(plantId, updatedPlant)
+            
+            setSyncStatus(plantId, 'plant', { 
+              isSyncing: false, 
+              isComplete: true, 
+              lastSync: Date.now() 
+            })
+            
+            return updatedPlant
+          } catch (error) {
+            console.error(`同步植物 ${plantId} 失败:`, error)
+            setSyncStatus(plantId, 'plant', { 
+              isSyncing: false, 
+              error: error instanceof Error ? error.message : 'Unknown error' 
+            })
+            return null
+          }
+        },
+
+        syncWateringRecord: async (recordId: string): Promise<WateringRecord | null> => {
+          const state = get()
+          const { setSyncStatus, updateWateringRecord } = state
+          
+          try {
+            setSyncStatus(recordId, 'watering', { isSyncing: true, error: undefined })
+            
+            // 从后端获取最新浇水记录数据
+            const response = await apiService.watering.getRecordById(recordId)
+            const updatedRecord = response.data
+            
+            // 更新本地浇水记录数据
+            updateWateringRecord(recordId, updatedRecord)
+            
+            setSyncStatus(recordId, 'watering', { 
+              isSyncing: false, 
+              isComplete: true, 
+              lastSync: Date.now() 
+            })
+            
+            return updatedRecord
+          } catch (error) {
+            console.error(`同步浇水记录 ${recordId} 失败:`, error)
+            setSyncStatus(recordId, 'watering', { 
+              isSyncing: false, 
+              error: error instanceof Error ? error.message : 'Unknown error' 
+            })
+            return null
+          }
+        },
+
+        syncIncompleteRecords: async (): Promise<void> => {
+          const state = get()
+          const { plants, wateringRecords, syncPlant, syncWateringRecord } = state
+          
+          // 同步不完整的植物记录
+          const incompletePlants = plants.filter((plant: Plant) => 
+            plant.syncStatus !== 'complete' || !plant.lastSyncTime
+          )
+          
+          // 同步不完整的浇水记录  
+          const incompleteWateringRecords = wateringRecords.filter((record: WateringRecord) => 
+            !record.memoryText || !record.emotionTags
+          )
+          
+          // 批量同步
+          await Promise.all([
+            ...incompletePlants.map((plant: Plant) => syncPlant(plant.id)),
+            ...incompleteWateringRecords.map((record: WateringRecord) => syncWateringRecord(record.id))
+          ])
+        }
       }),
       {
         name: 'memobloom-storage',
@@ -110,7 +222,10 @@ export const useAppStore = create<AppStore>()(
           plants: state.plants,
           currentPlantId: state.currentPlantId,
           wateringRecords: state.wateringRecords,
-          notifications: state.notifications
+          notifications: state.notifications,
+          plantSyncStatus: state.plantSyncStatus,
+          wateringRecordSyncStatus: state.wateringRecordSyncStatus,
+          lastGlobalSync: state.lastGlobalSync
         })
       }
     )

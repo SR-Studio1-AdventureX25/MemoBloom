@@ -1,6 +1,14 @@
 import type { Plant } from './plant'
 import type { WateringRecord, OfflineWateringItem } from './watering'
 
+// 同步状态类型
+export interface SyncStatus {
+  lastSync: number
+  isComplete: boolean
+  isSyncing: boolean
+  error?: string
+}
+
 // 应用状态类型
 export interface AppState {
   plants: Plant[]                 // 植物列表
@@ -18,4 +26,8 @@ export interface AppState {
   }>
   videoPlaylist: string[]         // 视频播放列表 (长度为2)
   currentVideoIndex: number       // 当前播放的视频索引 (0或1)
+  // 同步状态管理
+  plantSyncStatus: Record<string, SyncStatus>  // 植物同步状态
+  wateringRecordSyncStatus: Record<string, SyncStatus>  // 浇水记录同步状态
+  lastGlobalSync: number          // 最后全局同步时间
 }
