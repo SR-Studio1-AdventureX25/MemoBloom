@@ -20,8 +20,15 @@ const SevenSegmentDigit = memo(function ({ digit }: { digit: number }) {
   const segmentPattern = segments[digit as keyof typeof segments] || [false, false, false, false, false, false, false];
 
   const segmentStyle = (isActive: boolean) => ({
-    backgroundColor: isActive ? '#ff6b35' : 'transparent',
-    boxShadow: isActive ? '0 0 8px #ff6b35, 0 0 15px #ff6b35, inset 0 0 3px #ff6b35' : 'none',
+    background: isActive ? 'linear-gradient(145deg, #4a4a4a, #2a2a2a)' : 'transparent',
+    boxShadow: isActive ? `
+      0 4px 8px rgba(0, 0, 0, 0.4),
+      0 2px 4px rgba(0, 0, 0, 0.3),
+      inset 2px 2px 4px rgba(255, 255, 255, 0.1),
+      inset -2px -2px 4px rgba(0, 0, 0, 0.4),
+      0 0 12px rgba(74, 74, 74, 0.6)
+    ` : 'none',
+    border: isActive ? '1px solid #333333' : 'none',
     transition: 'all 0.2s ease',
     display: isActive ? 'block' : 'none'
   });
@@ -584,7 +591,7 @@ export default function DigitalLibraryPage() {
         </div>
       </div>
 
-      <div className="calendar mt-20 flex justify-center scale-90">
+      <div className="calendar mt-15 flex justify-center scale-80">
         <DigitalCalendar scrollLeft={scrollLeft} />
       </div>
       
