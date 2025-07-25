@@ -2,7 +2,7 @@
 export const VIDEO_RESOURCES: Record<string, string> = {
   // 种子阶段
   'plant-seed-happy': '/plantsVideo/seed_happy.mp4',
-  'plant-seed-normal': '/plantsVideo/seed_normal.png',
+  'plant-seed-normal': '/plantsVideo/seed_normal.mp4',
   'plant-seed-sad': '/plantsVideo/seed_sad.mp4',
   // 幼苗阶段
   'plant-sprout-happy': '/plantsVideo/sprout_happy.mp4',
@@ -16,11 +16,6 @@ export const VIDEO_RESOURCES: Record<string, string> = {
   'plant-flowering-happy': '/plantsVideo/flowering_happy.mp4',
   'plant-flowering-normal': '/plantsVideo/flowering_normal.mp4',
   'plant-flowering-sad': '/plantsVideo/flowering_sad.mp4'
-}
-
-// 判断资源是否为图片
-export const isImageResource = (resourceId: string): boolean => {
-  return resourceId?.includes('seed-normal') || false
 }
 
 // 获取资源URL

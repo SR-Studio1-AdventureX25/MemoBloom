@@ -290,7 +290,7 @@ export default function MicrophoneButton({
 
   // 触摸开始
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    e.preventDefault()
+    // e.preventDefault()
     const touch = e.touches[0]
     startPositionRef.current = { x: touch.clientX, y: touch.clientY }
     setDragPosition({ x: 0, y: 0 })
@@ -303,7 +303,7 @@ export default function MicrophoneButton({
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (!isDragging || !isRecording) return
     
-    e.preventDefault()
+    // e.preventDefault()
     const touch = e.touches[0]
     const deltaX = touch.clientX - startPositionRef.current.x
     const deltaY = touch.clientY - startPositionRef.current.y
@@ -400,7 +400,7 @@ export default function MicrophoneButton({
   }
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center" data-microphone-button>
       {/* 取消提示区域 */}
       {isRecording && (
         <div className={`mb-4 transition-all duration-200 ${cancelZone ? 'scale-110' : 'scale-100'}`}>

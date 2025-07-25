@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useAppStore } from '@/store'
 import { useCurrentPlant } from '@/store/selectors'
-import { getResourceUrl, isImageResource } from '@/constants/videoResources'
+import { getResourceUrl } from '@/constants/videoResources'
 
 export function useVideoPlayback() {
   const { 
@@ -34,10 +34,6 @@ export function useVideoPlayback() {
     return videoPlaylist[nextIndex]
   }, [videoPlaylist, currentVideoIndex])
 
-  // 判断当前资源是否为图片
-  const isCurrentResourceImage = useMemo(() => {
-    return currentResourceId ? isImageResource(currentResourceId) : false
-  }, [currentResourceId])
 
   // 初始化播放列表
   const initializePlaylist = useCallback(() => {
@@ -157,18 +153,6 @@ export function useVideoPlayback() {
     }
   }, [])
 
-  // 处理图片加载完成
-  const handleImageLoad = useCallback(() => {
-    setIsLoading(false)
-    setError(null)
-  }, [])
-
-  // 处理图片加载错误
-  const handleImageError = useCallback(() => {
-    console.error(`图片加载错误: ${currentResourceId}`)
-    setError('图片加载失败')
-    setIsLoading(false)
-  }, [currentResourceId])
 
   // 监听植物变化，初始化播放列表
   useEffect(() => {
@@ -218,21 +202,6 @@ export function useVideoPlayback() {
     backVideoPlayedRef.current = false
   }, [frontVideoUrl, backVideoUrl])
 
-  // 图片定时切换逻辑
-  useEffect(() => {
-    if (isCurrentResourceImage) {
-      console.log(`图片资源开始显示: ${currentResourceId}，3秒后切换`)
-      const timer = setTimeout(() => {
-        console.log(`图片显示时间到，切换到下一个资源`)
-        handleVideoEnded()
-      }, 3000) // 3秒后自动切换
-      
-      return () => {
-        clearTimeout(timer)
-        console.log(`清除图片定时器`)
-      }
-    }
-  }, [isCurrentResourceImage, currentResourceId, handleVideoEnded])
 
   return {
     frontVideoRef,
@@ -240,7 +209,6 @@ export function useVideoPlayback() {
     frontVideoUrl,
     backVideoUrl,
     currentResourceId,
-    isCurrentResourceImage,
     isLoading,
     error,
     currentPlant,
@@ -250,8 +218,6 @@ export function useVideoPlayback() {
     handleVideoEnded,
     handleFrontVideoCanPlay,
     handleBackVideoCanPlay,
-    handleVideoError,
-    handleImageLoad,
-    handleImageError
+    handleVideoError
   }
 }

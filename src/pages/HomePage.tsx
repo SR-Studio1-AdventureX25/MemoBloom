@@ -279,29 +279,16 @@ export default function HomePage() {
       }, 5000)
     }
     
-    // 使用AI分析的情感结果，如果没有则使用默认的happy
-    if (currentPlant) {
-      const finalEmotion = emotion || 'happy'
-      const stage = currentPlant.currentGrowthStage
-      
-      // 更新播放列表：先播放normal，然后播放情感视频
-      const { updateVideoPlaylist } = useAppStore.getState()
-      updateVideoPlaylist([
-        `plant-${stage}-normal`,
-        `plant-${stage}-${finalEmotion}`
-      ])
-      
-      console.log(`植物情感反应: ${finalEmotion}, 阶段: ${stage}`)
-      
-      // 更新通知消息以反映植物的情感状态
+    // 植物情感反应的通知（播放列表更新已在MicrophoneButton中处理）
+    if (success && emotion && currentPlant) {
       const emotionMessages = {
         happy: '你的植物很开心！🌱✨',
         sad: '你的植物有点难过 😢💧'
       } as const
       
       addNotification({
-        title: `植物情感反应: ${finalEmotion === 'happy' ? '开心' : '悲伤'}`,
-        message: emotionMessages[finalEmotion],
+        title: `植物情感反应: ${emotion === 'happy' ? '开心' : '悲伤'}`,
+        message: emotionMessages[emotion],
         type: 'info',
         read: false
       })

@@ -67,6 +67,11 @@ const PageContainer = () => {
 
   // 原生触摸开始处理函数
   const handleNativeTouchStart = useCallback((e: TouchEvent) => {
+    // 检查是否点击在麦克风按钮区域
+    if ((e.target as Element).closest('[data-microphone-button]')) {
+      return // 直接返回，不处理页面切换
+    }
+
     if (isAnimating) return
 
     const touch = e.touches[0]

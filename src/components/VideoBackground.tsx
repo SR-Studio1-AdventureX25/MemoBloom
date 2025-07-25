@@ -11,7 +11,6 @@ export default function VideoBackground({ showOverlay = false }: VideoBackground
     frontVideoUrl,
     backVideoUrl,
     currentResourceId,
-    isCurrentResourceImage,
     isLoading,
     error,
     // currentPlant,
@@ -21,9 +20,7 @@ export default function VideoBackground({ showOverlay = false }: VideoBackground
     handleVideoEnded,
     handleFrontVideoCanPlay,
     handleBackVideoCanPlay,
-    handleVideoError,
-    handleImageLoad,
-    handleImageError
+    handleVideoError
   } = useVideoPlayback()
 
   // 重新加载资源
@@ -68,7 +65,7 @@ export default function VideoBackground({ showOverlay = false }: VideoBackground
   return (
     <div className="absolute inset-0 overflow-hidden">
       {/* 前景视频 */}
-      {frontVideoUrl && !isCurrentResourceImage && (
+      {frontVideoUrl && (
         <video
           key="front-video"
           ref={frontVideoRef}
@@ -86,7 +83,7 @@ export default function VideoBackground({ showOverlay = false }: VideoBackground
       )}
 
       {/* 背景视频 */}
-      {backVideoUrl && !isCurrentResourceImage && (
+      {backVideoUrl && (
         <video
           key="back-video"
           ref={backVideoRef}
@@ -99,18 +96,6 @@ export default function VideoBackground({ showOverlay = false }: VideoBackground
           onCanPlay={handleBackVideoCanPlay}
           onError={handleVideoError('back-video')}
           onEnded={!frontVideoActive ? handleVideoEnded : undefined}
-        />
-      )}
-
-      {/* 图片元素 - seed-normal */}
-      {isCurrentResourceImage && frontVideoUrl && (
-        <img
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ zIndex: 2 }}
-          src={frontVideoUrl}
-          alt="Plant seed"
-          onLoad={handleImageLoad}
-          onError={handleImageError}
         />
       )}
 
