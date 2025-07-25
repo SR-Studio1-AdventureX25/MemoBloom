@@ -170,7 +170,7 @@ const mapChineseToEnglishGrowthStage = (chineseStage: string): string => {
     '发芽': 'sprout',
     '含苞': 'mature',
     '开花': 'flowering',
-    '结果': 'fruiting'
+    '结束': 'fruiting'
   }
   return stageMap[chineseStage] || 'seed'
 }
@@ -181,7 +181,7 @@ const mapChineseToEnglishGrowthStage = (chineseStage: string): string => {
 //     'sprout': '发芽',
 //     'mature': '含苞',
 //     'flowering': '开花',
-//     'fruiting': '结果'
+//     'fruiting': '结束'
 //   }
 //   return stageMap[englishStage] || '种子'
 // }

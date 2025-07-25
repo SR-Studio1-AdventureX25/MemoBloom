@@ -15,7 +15,11 @@ export const VIDEO_RESOURCES: Record<string, string> = {
   // 开花阶段
   'plant-flowering-happy': '/plantsVideo/flowering_happy.mp4',
   'plant-flowering-normal': '/plantsVideo/flowering_normal.mp4',
-  'plant-flowering-sad': '/plantsVideo/flowering_sad.mp4'
+  'plant-flowering-sad': '/plantsVideo/flowering_sad.mp4',
+  // 结束阶段（fruiting）- 暂时使用开花阶段的视频作为占位符
+  'plant-fruiting-happy': '/plantsVideo/flowering_happy.mp4',
+  'plant-fruiting-normal': '/plantsVideo/flowering_normal.mp4',
+  'plant-fruiting-sad': '/plantsVideo/flowering_sad.mp4'
 }
 
 // 获取资源URL

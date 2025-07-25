@@ -30,7 +30,7 @@ export const PlantGrowthStage = {
   SPROUT: 'sprout',               // 发芽
   MATURE: 'mature',               // 含苞
   FLOWERING: 'flowering',         // 开花
-  FRUITING: 'fruiting',           // 结果
+  FRUITING: 'fruiting',           // 结束
 } as const
 
 export type PlantGrowthStageType = typeof PlantGrowthStage[keyof typeof PlantGrowthStage]
