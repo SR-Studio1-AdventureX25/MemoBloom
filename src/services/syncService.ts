@@ -84,8 +84,12 @@ class SyncService {
     try {
       console.log(`开始同步植物: ${plantId}`)
       
-      // 标记为同步中
-      store.setSyncStatus(plantId, 'plant', { isSyncing: true, error: undefined })
+      // 标记为同步中，记录开始时间
+      store.setSyncStatus(plantId, 'plant', { 
+        isSyncing: true, 
+        error: undefined,
+        lastSync: Date.now()  // 记录同步开始时间
+      })
 
       // 从服务器获取最新数据
       const response = await apiService.plants.getById(plantId)
@@ -147,8 +151,12 @@ class SyncService {
     try {
       console.log(`开始同步浇水记录: ${recordId}`)
       
-      // 标记为同步中
-      store.setSyncStatus(recordId, 'watering', { isSyncing: true, error: undefined })
+      // 标记为同步中，记录开始时间
+      store.setSyncStatus(recordId, 'watering', { 
+        isSyncing: true, 
+        error: undefined,
+        lastSync: Date.now()  // 记录同步开始时间
+      })
 
       // 从服务器获取最新数据
       const response = await apiService.watering.getRecordById(recordId)

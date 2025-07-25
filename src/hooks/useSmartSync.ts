@@ -127,6 +127,47 @@ export function useSmartSync() {
     return () => clearInterval(interval)
   }, [isOnline, syncState.isSyncing, backgroundSync])
 
+  // 清理卡住的同步状态
+  useEffect(() => {
+    const cleanupStuckSyncStates = () => {
+      const now = Date.now()
+      const SYNC_TIMEOUT = 30 * 1000 // 30秒超时
+      
+      // 检查植物同步状态
+      plants.forEach(plant => {
+        const syncStatus = getSyncStatus(plant.id, 'plant')
+        if (syncStatus.isSyncing && syncStatus.lastSync && 
+            (now - syncStatus.lastSync) > SYNC_TIMEOUT) {
+          console.warn(`清理卡住的植物同步状态: ${plant.id}`)
+          useAppStore.getState().setSyncStatus(plant.id, 'plant', { 
+            isSyncing: false,
+            error: '同步超时，已自动重置'
+          })
+        }
+      })
+      
+      // 检查浇水记录同步状态
+      wateringRecords.forEach(record => {
+        const syncStatus = getSyncStatus(record.id, 'watering')
+        if (syncStatus.isSyncing && syncStatus.lastSync && 
+            (now - syncStatus.lastSync) > SYNC_TIMEOUT) {
+          console.warn(`清理卡住的浇水记录同步状态: ${record.id}`)
+          useAppStore.getState().setSyncStatus(record.id, 'watering', { 
+            isSyncing: false,
+            error: '同步超时，已自动重置'
+          })
+        }
+      })
+    }
+    
+    // 应用启动时立即清理一次
+    cleanupStuckSyncStates()
+    
+    // 每分钟检查一次
+    const interval = setInterval(cleanupStuckSyncStates, 60 * 1000)
+    return () => clearInterval(interval)
+  }, [plants, wateringRecords, getSyncStatus])
+
   return {
     syncState,
     triggerSync,

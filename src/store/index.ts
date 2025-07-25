@@ -223,8 +223,19 @@ export const useAppStore = create<AppStore>()(
           currentPlantId: state.currentPlantId,
           wateringRecords: state.wateringRecords,
           notifications: state.notifications,
-          plantSyncStatus: state.plantSyncStatus,
-          wateringRecordSyncStatus: state.wateringRecordSyncStatus,
+          // 过滤掉 isSyncing 状态，防止持久化卡住的同步状态
+          plantSyncStatus: Object.fromEntries(
+            Object.entries(state.plantSyncStatus).map(([id, status]) => [
+              id, 
+              { ...status, isSyncing: false }  // 强制设为 false
+            ])
+          ),
+          wateringRecordSyncStatus: Object.fromEntries(
+            Object.entries(state.wateringRecordSyncStatus).map(([id, status]) => [
+              id,
+              { ...status, isSyncing: false }  // 强制设为 false
+            ])
+          ),
           lastGlobalSync: state.lastGlobalSync
         })
       }
