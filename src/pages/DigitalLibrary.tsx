@@ -591,7 +591,7 @@ export default function DigitalLibraryPage() {
         </div>
       </div>
 
-      <div className="calendar mt-15 flex justify-center scale-80">
+      <div className="calendar mt-12 flex justify-center scale-70">
         <DigitalCalendar scrollLeft={scrollLeft} />
       </div>
       
