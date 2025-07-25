@@ -357,7 +357,7 @@ const PageContainer = () => {
           }}
         />
         
-        <div className="relative w-full h-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 overflow-hidden border border-purple-400/20"
+        <div className="relative w-full h-full overflow-hidden"
              style={{ borderRadius: 'inherit' }}>
           <DigitalLibraryPage />
         </div>
