@@ -3,6 +3,7 @@ import { devtools, persist } from 'zustand/middleware'
 import type { AppState, Plant, WateringRecord, OfflineWateringItem, SyncStatus } from '@/types'
 import type { AppStore } from './types'
 import { apiService } from '@/services/api'
+import { pwaService } from '@/services/pwa'
 
 // 重新导出选择器函数以保持向后兼容性
 export { useNotificationActions, useOnlineActions } from './selectors'
@@ -81,16 +82,28 @@ export const useAppStore = create<AppStore>()(
         setOnlineStatus: (status: boolean) => set({ isOnline: status }),
 
         // Actions - 通知相关
-        addNotification: (notification: Omit<AppState['notifications'][0], 'id' | 'createdAt'>) => set((state) => ({
-          notifications: [
-            {
-              ...notification,
-              id: crypto.randomUUID(),
-              createdAt: new Date()
-            },
-            ...state.notifications
-          ]
-        })),
+        addNotification: (notification: Omit<AppState['notifications'][0], 'id' | 'createdAt'>) => {
+          // 同时发送 PWA 本地通知
+          pwaService.sendLocalNotification(notification.title, {
+            body: notification.message,
+            tag: `app-notification-${Date.now()}`,
+            icon: '/pwa-192x192.png'
+          }).catch(error => {
+            console.warn('发送PWA通知失败:', error)
+          })
+
+          // 更新应用内通知状态
+          set((state) => ({
+            notifications: [
+              {
+                ...notification,
+                id: crypto.randomUUID(),
+                createdAt: new Date()
+              },
+              ...state.notifications
+            ]
+          }))
+        },
         
         markNotificationAsRead: (id: string) => set((state) => ({
           notifications: state.notifications.map(notification =>

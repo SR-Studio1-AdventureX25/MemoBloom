@@ -90,39 +90,46 @@ export class PWAService {
 
   // 设置推送通知
   async setupPushNotifications() {
-    // 对于demo应用，暂时禁用推送通知
-    const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
-    if (!vapidKey) {
-      console.log('Push notifications disabled: VAPID key not configured')
-      return
-    }
-
-    if (!('Notification' in window) || !this.registration) {
-      console.log('Push messaging is not supported')
+    if (!('Notification' in window)) {
+      console.log('Notifications are not supported in this browser')
       return
     }
 
     // 请求通知权限
     const permission = await Notification.requestPermission()
-    if (permission !== 'granted') {
+    if (permission === 'granted') {
+      console.log('Notification permission granted')
+      
+      // 发送欢迎通知
+      await this.sendLocalNotification('通知已启用', {
+        body: '您现在可以接收植忆的通知消息了！',
+        icon: '/pwa-192x192.png',
+        tag: 'welcome-notification'
+      })
+    } else if (permission === 'denied') {
       console.log('Notification permission denied')
-      return
+    } else {
+      console.log('Notification permission dismissed')
     }
 
-    try {
-      // 订阅推送服务
-      const subscription = await this.registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: this.urlBase64ToUint8Array(vapidKey)
-      })
+    // 可选：如果配置了VAPID密钥，则同时启用推送通知
+    const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
+    if (vapidKey && this.registration) {
+      try {
+        // 订阅推送服务
+        const subscription = await this.registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: this.urlBase64ToUint8Array(vapidKey)
+        })
 
-      console.log('Push subscription created:', subscription)
-      
-      // 将订阅信息发送到服务器
-      await this.sendSubscriptionToServer(subscription)
-      
-    } catch (error) {
-      console.error('Failed to subscribe to push notifications:', error)
+        console.log('Push subscription created:', subscription)
+        
+        // 将订阅信息发送到服务器
+        await this.sendSubscriptionToServer(subscription)
+        
+      } catch (error) {
+        console.error('Failed to subscribe to push notifications:', error)
+      }
     }
   }
 
@@ -160,6 +167,100 @@ export class PWAService {
         ...options
       })
     }
+  }
+
+  // 便捷的通知方法
+  async sendPlantNotification(plantName: string, message: string, type: 'watering' | 'growth' | 'achievement' = 'watering') {
+    const icons = {
+      watering: '/pwa-192x192.png',
+      growth: '/pwa-192x192.png', 
+      achievement: '/pwa-512x512.png'
+    }
+
+    const tags = {
+      watering: 'plant-watering',
+      growth: 'plant-growth',
+      achievement: 'plant-achievement'
+    }
+
+    await this.sendLocalNotification(`🌱 ${plantName}`, {
+      body: message,
+      icon: icons[type],
+      tag: tags[type],
+      requireInteraction: type === 'achievement' // 成就通知需要用户交互
+    })
+
+    // 同时添加到应用内通知
+    const { addNotification } = getNotificationActions()
+    addNotification({
+      title: `🌱 ${plantName}`,
+      message,
+      type: type === 'achievement' ? 'success' : 'info',
+      read: false
+    })
+  }
+
+  // 发送浇水提醒通知
+  async sendWateringReminder(plantName: string, daysSinceLastWatering: number) {
+    const message = daysSinceLastWatering > 3 
+      ? `已经 ${daysSinceLastWatering} 天没有浇水了，快来关心一下吧！`
+      : `该给我浇水啦！上次浇水是 ${daysSinceLastWatering} 天前`
+
+    await this.sendPlantNotification(plantName, message, 'watering')
+  }
+
+  // 发送植物成长通知
+  async sendGrowthNotification(plantName: string, newStage: string) {
+    const stageMessages = {
+      'sprout': '发芽了！小小的嫩芽破土而出',
+      'mature': '茁壮成长！已经长成健康的植物',
+      'flowering': '开花了！美丽的花朵绽放'
+    }
+
+    const message = stageMessages[newStage as keyof typeof stageMessages] || `进入了新的成长阶段：${newStage}`
+    await this.sendPlantNotification(plantName, message, 'growth')
+  }
+
+  // 发送成就通知
+  async sendAchievementNotification(achievementTitle: string, description: string) {
+    await this.sendLocalNotification(`🏆 ${achievementTitle}`, {
+      body: description,
+      icon: '/pwa-512x512.png',
+      tag: 'achievement',
+      requireInteraction: true
+    })
+
+    // 同时添加到应用内通知
+    const { addNotification } = getNotificationActions()
+    addNotification({
+      title: `🏆 ${achievementTitle}`,
+      message: description,
+      type: 'success',
+      read: false
+    })
+  }
+
+  // 检查通知权限状态
+  getNotificationPermission(): NotificationPermission {
+    return 'Notification' in window ? Notification.permission : 'denied'
+  }
+
+  // 请求通知权限（可以在用户交互时调用）
+  async requestNotificationPermission(): Promise<NotificationPermission> {
+    if (!('Notification' in window)) {
+      return 'denied'
+    }
+
+    const permission = await Notification.requestPermission()
+    
+    if (permission === 'granted') {
+      await this.sendLocalNotification('通知已启用', {
+        body: '您现在可以接收植忆的通知消息了！',
+        tag: 'permission-granted'
+      })
+    }
+
+    return permission
   }
 
   // 注册后台同步任务
