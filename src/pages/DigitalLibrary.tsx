@@ -114,10 +114,10 @@ const AudioDetailModal = memo(function ({
         src={audioRecord.nftMinted ? "/CDVIP.png" : "/CD.png"}
         className={`fixed z-60 transition-all duration-700 ease-out ${!animatingDisc && !isClosing ? 'animate-spin-slow' : ''}`}
         style={{
-          left: (animatingDisc && !isClosing) || isClosing ? `${animationData.startX}px` : `calc(50vw - 160px)`,
-          top: (animatingDisc && !isClosing) || isClosing ? `${animationData.startY}px` : `calc(25vh - 160px)`,
-          width: (animatingDisc && !isClosing) || isClosing ? `${animationData.startSize}px` : '320px',
-          height: (animatingDisc && !isClosing) || isClosing ? `${animationData.startSize}px` : '320px',
+          left: (animatingDisc && !isClosing) || isClosing ? `${animationData.startX}px` : `calc(50vw - 140px)`,
+          top: (animatingDisc && !isClosing) || isClosing ? `${animationData.startY}px` : `calc(22vh - 140px)`,
+          width: (animatingDisc && !isClosing) || isClosing ? `${animationData.startSize}px` : '280px',
+          height: (animatingDisc && !isClosing) || isClosing ? `${animationData.startSize}px` : '280px',
           filter: `
             drop-shadow(0 12px 24px rgba(139, 69, 19, 0.6))
             drop-shadow(0 6px 12px rgba(160, 82, 45, 0.4))
