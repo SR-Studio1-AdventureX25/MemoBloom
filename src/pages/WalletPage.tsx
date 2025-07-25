@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useWalletStore } from '@/store/walletStore'
+import { useAppStore } from '@/store'
 import { injectiveWallet } from '@/services/injectiveWallet'
 import { passkeyAuth } from '@/services/passkeyAuth'
 import { walletCrypto } from '@/services/walletCrypto'
 import PinInput from '@/components/wallet/PinInput'
 import MnemonicDisplay from '@/components/wallet/MnemonicDisplay'
-import type { WalletSetupStep, WalletPageState } from '@/types'
+import type { WalletSetupStep, WalletPageState, Plant, WateringRecord } from '@/types'
 
 export default function WalletPage() {
   const {
@@ -17,6 +18,9 @@ export default function WalletPage() {
     lockWallet,
     deleteWallet
   } = useWalletStore()
+
+  // 获取收藏数据 - 在组件顶层调用
+  const { favoritePlants, favoriteWateringRecords, updateFavoritePlant, updateFavoriteWateringRecord } = useAppStore()
 
   const [pageState, setPageState] = useState<WalletPageState>('no-wallet')
   const [setupStep, setSetupStep] = useState<WalletSetupStep>('welcome')
@@ -446,66 +450,216 @@ export default function WalletPage() {
     </div>
   )
 
+  // 模拟NFT铸造功能
+  const handleMintPlantNFT = async (plant: Plant) => {
+    if (plant.nftMinted) return
+    
+    setIsLoading(true)
+    try {
+      // 模拟NFT铸造过程
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      // 更新收藏中的植物NFT状态
+      updateFavoritePlant(plant.id, {
+        nftMinted: true,
+        nftAddress: `0x${Math.random().toString(16).substr(2, 40)}`,
+        nftWalletAddress: walletAddress || ''
+      })
+      
+      setError('')
+    } catch {
+      setError('NFT铸造失败，请重试')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+  
+  const handleMintWateringRecordNFT = async (record: WateringRecord) => {
+    if (record.nftMinted) return
+    
+    setIsLoading(true)
+    try {
+      // 模拟NFT铸造过程
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      // 更新收藏中的浇水记录NFT状态
+      updateFavoriteWateringRecord(record.id, {
+        nftMinted: true,
+        nftAddress: `0x${Math.random().toString(16).substr(2, 40)}`,
+        nftWalletAddress: walletAddress || '',
+        nftMintTime: new Date().toISOString()
+      })
+      
+      setError('')
+    } catch {
+      setError('NFT铸造失败，请重试')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   // 渲染解锁状态
-  const renderUnlocked = () => (
-    <div className="max-w-md mx-auto">
-      <div className="text-center mb-8">
-        <div className="text-6xl mb-4">💼</div>
-        <h1 className="text-3xl font-bold text-white mb-2">我的钱包</h1>
-        <p className="text-white/70">专为MemoBloom NFT设计</p>
-      </div>
+  const renderUnlocked = () => {
 
-      {/* 钱包地址卡片 */}
-      <div className="bg-white/10 border border-white/20 rounded-xl p-6 mb-6 backdrop-blur-sm">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-white font-semibold">钱包地址</h3>
-          <div className="text-green-400 text-sm flex items-center space-x-1">
-            <span>🟢</span>
-            <span>已解锁</span>
+    return (
+      <div className="max-w-md mx-auto">
+        <div className="text-center mb-8">
+          <div className="text-6xl mb-4">💼</div>
+          <h1 className="text-3xl font-bold text-white mb-2">我的钱包</h1>
+          <p className="text-white/70">专为MemoBloom NFT设计</p>
+        </div>
+
+        {/* 钱包地址卡片 */}
+        <div className="bg-white/10 border border-white/20 rounded-xl p-6 mb-6 backdrop-blur-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-white font-semibold">钱包地址</h3>
+            <div className="text-green-400 text-sm flex items-center space-x-1">
+              <span>🟢</span>
+              <span>已解锁</span>
+            </div>
           </div>
+          
+          <div className="bg-black/20 rounded-lg p-3 font-mono text-sm text-white/80 break-all">
+            {walletAddress}
+          </div>
+          
+          <button
+            onClick={() => navigator.clipboard.writeText(walletAddress || '')}
+            className="w-full mt-3 bg-white/10 hover:bg-white/20 text-white py-2 px-4 rounded-lg transition-all duration-200 text-sm"
+          >
+            复制地址
+          </button>
         </div>
-        
-        <div className="bg-black/20 rounded-lg p-3 font-mono text-sm text-white/80 break-all">
-          {walletAddress}
+
+        {/* NFT资产和收藏管理 */}
+        <div className="bg-white/10 border border-white/20 rounded-xl p-6 mb-6 backdrop-blur-sm">
+          <h3 className="text-white font-semibold mb-4">收藏与NFT管理</h3>
+          
+          {/* 收藏植物 */}
+          {favoritePlants.length > 0 && (
+            <div className="mb-6">
+              <h4 className="text-white/80 text-sm font-medium mb-3">收藏植物 ({favoritePlants.length})</h4>
+              <div className="space-y-3">
+                {favoritePlants.map((plant) => (
+                  <div key={plant.id} className="bg-black/20 rounded-lg p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="text-white text-sm font-medium">{plant.variety}</div>
+                        <div className="text-white/60 text-xs">
+                          {plant.currentGrowthStage} • 成长值: {plant.growthValue}
+                        </div>
+                        <div className="text-white/50 text-xs">
+                          {new Date(plant.createdAt).toLocaleDateString('zh-CN')}
+                        </div>
+                      </div>
+                      <div className="ml-3">
+                        {plant.nftMinted ? (
+                          <div className="flex items-center space-x-1">
+                            <span className="text-purple-400 text-xs">✨ 已上链</span>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleMintPlantNFT(plant)}
+                            disabled={isLoading}
+                            className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white text-xs py-1 px-3 rounded-md transition-all duration-200 disabled:opacity-50"
+                          >
+                            {isLoading ? '铸造中...' : '铸造NFT'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {plant.nftMinted && plant.nftAddress && (
+                      <div className="mt-2 text-purple-300 text-xs font-mono break-all">
+                        {plant.nftAddress}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* 收藏浇水记录 */}
+          {favoriteWateringRecords.length > 0 && (
+            <div className="mb-4">
+              <h4 className="text-white/80 text-sm font-medium mb-3">收藏记忆 ({favoriteWateringRecords.length})</h4>
+              <div className="space-y-3">
+                {favoriteWateringRecords.map((record) => (
+                  <div key={record.id} className="bg-black/20 rounded-lg p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="text-white text-sm font-medium">
+                          {record.coreEvent || '记忆片段'}
+                        </div>
+                        <div className="text-white/60 text-xs">
+                          情感强度: {record.emotionIntensity}/10 • 成长值: +{record.growthIncrement}
+                        </div>
+                        <div className="text-white/50 text-xs">
+                          {new Date(record.wateringTime).toLocaleDateString('zh-CN')}
+                        </div>
+                      </div>
+                      <div className="ml-3">
+                        {record.nftMinted ? (
+                          <div className="flex items-center space-x-1">
+                            <span className="text-purple-400 text-xs">✨ 已上链</span>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleMintWateringRecordNFT(record)}
+                            disabled={isLoading}
+                            className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white text-xs py-1 px-3 rounded-md transition-all duration-200 disabled:opacity-50"
+                          >
+                            {isLoading ? '铸造中...' : '铸造NFT'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {record.nftMinted && record.nftAddress && (
+                      <div className="mt-2 text-purple-300 text-xs font-mono break-all">
+                        {record.nftAddress}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* 空状态 */}
+          {favoritePlants.length === 0 && favoriteWateringRecords.length === 0 && (
+            <div className="text-center text-white/50 py-8">
+              <div className="text-4xl mb-2">🎨</div>
+              <p>暂无收藏项目</p>
+              <p className="text-sm mt-1">在数字图书馆中收藏植物和记忆</p>
+            </div>
+          )}
+          
+          {/* 错误提示 */}
+          {error && (
+            <div className="text-red-400 text-sm mt-4 text-center">{error}</div>
+          )}
         </div>
-        
-        <button
-          onClick={() => navigator.clipboard.writeText(walletAddress || '')}
-          className="w-full mt-3 bg-white/10 hover:bg-white/20 text-white py-2 px-4 rounded-lg transition-all duration-200 text-sm"
-        >
-          复制地址
-        </button>
-      </div>
 
-      {/* NFT资产 */}
-      <div className="bg-white/10 border border-white/20 rounded-xl p-6 mb-6 backdrop-blur-sm">
-        <h3 className="text-white font-semibold mb-4">NFT资产</h3>
-        <div className="text-center text-white/50 py-8">
-          <div className="text-4xl mb-2">🎨</div>
-          <p>暂无NFT资产</p>
-          <p className="text-sm mt-1">通过浇水记录铸造您的第一个NFT</p>
+        {/* 操作按钮 */}
+        <div className="space-y-3">
+          <button
+            onClick={handleLockWallet}
+            className="w-full bg-white/10 hover:bg-white/20 text-white py-3 px-4 rounded-lg transition-all duration-200 backdrop-blur-sm border border-white/20 flex items-center justify-center space-x-2"
+          >
+            <span>🔒</span>
+            <span>锁定钱包</span>
+          </button>
+
+          <button
+            onClick={handleDeleteWallet}
+            className="w-full text-red-400 hover:text-red-300 py-3 px-4 rounded-lg transition-all duration-200 text-sm"
+          >
+            删除钱包
+          </button>
         </div>
       </div>
-
-      {/* 操作按钮 */}
-      <div className="space-y-3">
-        <button
-          onClick={handleLockWallet}
-          className="w-full bg-white/10 hover:bg-white/20 text-white py-3 px-4 rounded-lg transition-all duration-200 backdrop-blur-sm border border-white/20 flex items-center justify-center space-x-2"
-        >
-          <span>🔒</span>
-          <span>锁定钱包</span>
-        </button>
-
-        <button
-          onClick={handleDeleteWallet}
-          className="w-full text-red-400 hover:text-red-300 py-3 px-4 rounded-lg transition-all duration-200 text-sm"
-        >
-          删除钱包
-        </button>
-      </div>
-    </div>
-  )
+    )
+  }
 
   // 主渲染逻辑
   const renderContent = () => {

@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, useState } from "react";
 import type { Plant, WateringRecord } from "@/types";
+import { useAppStore } from "@/store";
 
 // 7段数码管组件
 const SevenSegmentDigit = memo(function ({ digit }: { digit: number }) {
@@ -140,7 +141,7 @@ const DigitalCalendar = memo(function ({ scrollLeft = 0 }: { scrollLeft?: number
   );
 });
 
-const PlantBox = memo(function ({offset}: {plant: Plant, offset: {x: number, y: number}}) {
+const PlantBox = memo(function ({plant, offset}: {plant: Plant, offset: {x: number, y: number}}) {
   return (<>
     <div 
       className="w-32 h-32 bg-cover bg-center bg-no-repeat transition-transform duration-300"
@@ -352,6 +353,9 @@ const AudioDetailModal = memo(function ({
 
 
 export default function DigitalLibraryPage() {
+  // 从 store 获取收藏数据
+  const { favoritePlants, favoriteWateringRecords } = useAppStore();
+  
   // 音频详情模态框状态
   const [selectedAudio, setSelectedAudio] = useState<WateringRecord | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -436,91 +440,9 @@ export default function DigitalLibraryPage() {
     return offsets;
   });
 
-  // 添加假数据 - 按时间顺序排序
-  const [plants] = useState<Plant[]>([
-    {
-      id: "plant-1",
-      variety: "多肉植物",
-      currentGrowthStage: "flowering",
-      growthValue: 85,
-      lastWateringTime: "2024-01-15T10:30:00Z",
-      userRecentStatus: "开心",
-      personalityTags: ["温和", "坚韧"],
-      nftMinted: true,
-      createdAt: "2024-01-01T00:00:00Z"
-    },
-    {
-      id: "plant-2", 
-      variety: "多肉植物",
-      currentGrowthStage: "mature",
-      growthValue: 65,
-      lastWateringTime: "2024-01-14T15:20:00Z",
-      userRecentStatus: "平静",
-      personalityTags: ["独立", "优雅"],
-      nftMinted: false,
-      createdAt: "2024-01-02T00:00:00Z"
-    },
-    {
-      id: "plant-3",
-      variety: "多肉植物", 
-      currentGrowthStage: "sprout",
-      growthValue: 35,
-      lastWateringTime: "2024-01-13T09:15:00Z",
-      userRecentStatus: "兴奋",
-      personalityTags: ["活泼", "好奇"],
-      nftMinted: false,
-      createdAt: "2024-01-03T00:00:00Z"
-    }
-  ].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
-
-  const [audios] = useState<WateringRecord[]>([
-    {
-      id: "audio-1",
-      plantId: "plant-1",
-      plantGrowthValue: 85,
-      memoryFile: "memory_token_abc123",
-      memoryText: "今天心情很好，和朋友聊天很开心",
-      emotionTags: ["开心", "满足"],
-      emotionIntensity: 8,
-      growthIncrement: 5,
-      coreEvent: "与朋友聚会",
-      nftMinted: true,
-      nftAddress: "0x1234567890abcdef1234567890abcdef12345678",
-      nftWalletAddress: "0xabcdef1234567890abcdef1234567890abcdef12",
-      wateringTime: "2024-01-15T10:30:00Z",
-      nftMintTime: "2024-01-15T11:00:00Z"
-    },
-    {
-      id: "audio-2",
-      plantId: "plant-2", 
-      plantGrowthValue: 65,
-      memoryFile: "memory_token_def456",
-      memoryText: "工作很忙，但是很充实",
-      emotionTags: ["忙碌", "充实"],
-      emotionIntensity: 6,
-      growthIncrement: 3,
-      coreEvent: "完成重要项目",
-      nftMinted: false,
-      wateringTime: "2024-01-14T15:20:00Z"
-    },
-    {
-      id: "audio-3",
-      plantId: "plant-3",
-      plantGrowthValue: 35,
-      memoryFile: "memory_token_ghi789",
-      memoryText: "学到了新东西，很有成就感",
-      emotionTags: ["兴奋", "成就感"],
-      emotionIntensity: 7,
-      growthIncrement: 4,
-      coreEvent: "学习新技能",
-      nftMinted: false,
-      wateringTime: "2024-01-13T09:15:00Z"
-    }
-  ]);
-
-  // 按时间顺序排序的数据
-  const sortedPlants = plants.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-  const sortedAudios = audios.sort((a, b) => new Date(a.wateringTime).getTime() - new Date(b.wateringTime).getTime());
+  // 使用收藏数据替代假数据，按时间顺序排序
+  const sortedPlants = favoritePlants.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  const sortedAudios = favoriteWateringRecords.sort((a, b) => new Date(a.wateringTime).getTime() - new Date(b.wateringTime).getTime());
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -556,14 +478,14 @@ export default function DigitalLibraryPage() {
           <div className="flex gap-8">
             {Array.from({ length: 10 }, (_, i) => (
               <div key={`row1-${i}`} className="w-32 h-32 flex-shrink-0 p-6">
-                {i % 2 === 0 ? (
-                  // 奇数位（索引0,2,4...）放PlantBox
+                {i % 2 === 0 && sortedPlants.length > 0 ? (
+                  // 奇数位（索引0,2,4...）放PlantBox，如果有收藏植物的话
                   <PlantBox 
                     plant={sortedPlants[Math.floor(i/2) % sortedPlants.length]} 
                     offset={boxOffsets[`row1-${i}`] || {x: 0, y: 0}}
                   />
                 ) : (
-                  // 偶数位留空
+                  // 偶数位留空，或者没有收藏植物时留空
                   <div className="w-32 h-32"></div>
                 )}
               </div>
@@ -574,15 +496,15 @@ export default function DigitalLibraryPage() {
           <div className="flex gap-8">
             {Array.from({ length: 10 }, (_, i) => (
               <div key={`row2-${i}`} className="w-32 h-32 flex-shrink-0 p-6">
-                {i % 2 === 1 ? (
-                  // 偶数位（索引1,3,5...）放AudioBox
+                {i % 2 === 1 && sortedAudios.length > 0 ? (
+                  // 偶数位（索引1,3,5...）放AudioBox，如果有收藏浇水记录的话
                   <AudioBox 
                     audioRecord={sortedAudios[Math.floor(i/2) % sortedAudios.length]} 
                     offset={boxOffsets[`row2-${i}`] || {x: 0, y: 0}}
                     onClick={(event) => handleAudioClick(sortedAudios[Math.floor(i/2) % sortedAudios.length], event)}
                   />
                 ) : (
-                  // 奇数位留空
+                  // 奇数位留空，或者没有收藏浇水记录时留空
                   <div className="w-32 h-32"></div>
                 )}
               </div>

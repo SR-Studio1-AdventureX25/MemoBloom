@@ -20,6 +20,9 @@ export const useAppStore = create<AppStore>()(
         notifications: [] as AppState['notifications'],
         videoPlaylist: ['plant-sprout-normal', 'plant-sprout-normal'], // 默认sprout阶段循环播放normal
         currentVideoIndex: 0,
+        // 收藏功能
+        favoritePlants: [] as Plant[],
+        favoriteWateringRecords: [] as WateringRecord[],
         // 同步状态管理
         plantSyncStatus: {},
         wateringRecordSyncStatus: {},
@@ -106,6 +109,54 @@ export const useAppStore = create<AppStore>()(
           videoPlaylist: playlist,
           currentVideoIndex: 0 // 重置到第一个视频
         }),
+
+        // Actions - 收藏植物相关
+        addFavoritePlant: (plant: Plant) => set((state) => {
+          // 检查是否已收藏
+          if (state.favoritePlants.some(p => p.id === plant.id)) {
+            return state
+          }
+          // 创建植物快照并添加到收藏
+          return {
+            favoritePlants: [...state.favoritePlants, { ...plant }]
+          }
+        }),
+
+        removeFavoritePlant: (plantId: string) => set((state) => ({
+          favoritePlants: state.favoritePlants.filter(plant => plant.id !== plantId)
+        })),
+
+        updateFavoritePlant: (id: string, updates: Partial<Plant>) => set((state) => ({
+          favoritePlants: state.favoritePlants.map(plant =>
+            plant.id === id ? { ...plant, ...updates } : plant
+          )
+        })),
+
+        clearFavoritePlants: () => set({ favoritePlants: [] }),
+
+        // Actions - 收藏浇水记录相关
+        addFavoriteWateringRecord: (record: WateringRecord) => set((state) => {
+          // 检查是否已收藏
+          if (state.favoriteWateringRecords.some(r => r.id === record.id)) {
+            return state
+          }
+          // 创建浇水记录快照并添加到收藏
+          return {
+            favoriteWateringRecords: [...state.favoriteWateringRecords, { ...record }]
+          }
+        }),
+
+        removeFavoriteWateringRecord: (recordId: string) => set((state) => ({
+          favoriteWateringRecords: state.favoriteWateringRecords.filter(record => record.id !== recordId)
+        })),
+
+        updateFavoriteWateringRecord: (id: string, updates: Partial<WateringRecord>) => set((state) => ({
+          favoriteWateringRecords: state.favoriteWateringRecords.map(record =>
+            record.id === id ? { ...record, ...updates } : record
+          )
+        })),
+
+        clearFavoriteWateringRecords: () => set({ favoriteWateringRecords: [] }),
 
         // Actions - 同步状态相关
         setSyncStatus: (entityId: string, type: 'plant' | 'watering', status: Partial<SyncStatus>) => set((state) => {
@@ -223,6 +274,9 @@ export const useAppStore = create<AppStore>()(
           currentPlantId: state.currentPlantId,
           wateringRecords: state.wateringRecords,
           notifications: state.notifications,
+          // 收藏功能数据
+          favoritePlants: state.favoritePlants,
+          favoriteWateringRecords: state.favoriteWateringRecords,
           // 过滤掉 isSyncing 状态，防止持久化卡住的同步状态
           plantSyncStatus: Object.fromEntries(
             Object.entries(state.plantSyncStatus).map(([id, status]) => [

@@ -39,6 +39,18 @@ export interface AppActions {
   setCurrentVideoIndex: (index: number) => void
   updateVideoPlaylist: (playlist: string[]) => void
   
+  // 收藏植物相关
+  addFavoritePlant: (plant: Plant) => void
+  removeFavoritePlant: (plantId: string) => void
+  updateFavoritePlant: (id: string, updates: Partial<Plant>) => void
+  clearFavoritePlants: () => void
+  
+  // 收藏浇水记录相关
+  addFavoriteWateringRecord: (record: WateringRecord) => void
+  removeFavoriteWateringRecord: (recordId: string) => void
+  updateFavoriteWateringRecord: (id: string, updates: Partial<WateringRecord>) => void
+  clearFavoriteWateringRecords: () => void
+  
   // 同步状态相关
   setSyncStatus: (entityId: string, type: 'plant' | 'watering', status: Partial<SyncStatus>) => void
   getSyncStatus: (entityId: string, type: 'plant' | 'watering') => SyncStatus

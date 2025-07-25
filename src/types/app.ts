@@ -26,6 +26,9 @@ export interface AppState {
   }>
   videoPlaylist: string[]         // 视频播放列表 (长度为2)
   currentVideoIndex: number       // 当前播放的视频索引 (0或1)
+  // 收藏功能
+  favoritePlants: Plant[]         // 收藏的植物快照列表
+  favoriteWateringRecords: WateringRecord[] // 收藏的浇水记录快照列表
   // 同步状态管理
   plantSyncStatus: Record<string, SyncStatus>  // 植物同步状态
   wateringRecordSyncStatus: Record<string, SyncStatus>  // 浇水记录同步状态
