@@ -6,7 +6,7 @@ import path from "path"
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: process.env.NODE_ENV === 'production' ? '/MemoBloom/' : '/',
+  base: '/app',
   plugins: [
     react(),
     tailwindcss(),
@@ -60,8 +60,8 @@ export default defineConfig({
         theme_color: '#10b981',
         background_color: '#000000',
         display: 'standalone',
-        scope: process.env.NODE_ENV === 'production' ? '/MemoBloom/' : '/',
-        start_url: process.env.NODE_ENV === 'production' ? '/MemoBloom/?source=pwa' : '/?source=pwa',
+        scope: '/',
+        start_url: '/?source=pwa',
         icons: [
           {
             src: 'pwa-192x192.png',
