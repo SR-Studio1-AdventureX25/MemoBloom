@@ -48,6 +48,32 @@ const ErrorState = memo<ErrorStateProps>(({ onReload }) => (
 
 ErrorState.displayName = 'ErrorState'
 
+// 日期显示组件
+const DateDisplay = memo(() => {
+  const currentDate = new Date()
+  const dateString = currentDate.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+  const weekday = currentDate.toLocaleDateString('zh-CN', {
+    weekday: 'long'
+  })
+
+  return (
+    <div className="absolute top-24 left-1/2 transform -translate-x-1/2 z-10 w-full max-w-2xl">
+      <div className="text-center">
+        <div className="text-white text-4xl font-serif font-bold tracking-wider drop-shadow-2xl" style={{ fontFamily: "'Playfair Display', 'Times New Roman', serif" }}>
+          <div className="mb-2">{dateString}</div>
+          <div className="text-2xl opacity-90">{weekday}</div>
+        </div>
+      </div>
+    </div>
+  )
+})
+
+DateDisplay.displayName = 'DateDisplay'
+
 // NFT 状态指示器组件
 const NFTIndicator = memo(() => (
   <div className="absolute top-20 right-4 z-10">
@@ -248,12 +274,15 @@ export default function HomePage() {
     return (
       <div className="relative min-h-screen overflow-hidden">
         {/* 在线状态指示器 */}
-        <div className="absolute top-4 left-4 z-10 flex items-center space-x-2 bg-black/20 backdrop-blur-sm rounded-full px-3 py-2">
+        <div className="absolute top-4 right-4 z-10 flex items-center space-x-2 bg-black/20 backdrop-blur-sm rounded-full px-3 py-2">
           <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-400' : 'bg-red-400'}`} />
           <span className="text-white/80 text-sm">
             {isOnline ? '在线' : '离线'}
           </span>
         </div>
+
+        {/* 日期显示 */}
+        <DateDisplay />
 
         {/* 视频背景 */}
         <VideoBackground showOverlay={isRecording} />
