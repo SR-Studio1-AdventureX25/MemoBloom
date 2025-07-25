@@ -7,7 +7,12 @@ const PlantBox = memo(function ({offset}: {plant: Plant, offset: {x: number, y: 
       className="w-32 h-32 bg-cover bg-center bg-no-repeat transition-transform duration-300"
       style={{
         backgroundImage: `url("/box.png")`,
-        transform: `translate(${offset.x}px, ${offset.y}px)`
+        transform: `translate(${offset.x}px, ${offset.y}px)`,
+        filter: `
+          drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3))
+          drop-shadow(0 8px 16px rgba(0, 0, 0, 0.15))
+          drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4))
+        `
       }}>
         植物标本
     </div>
@@ -20,7 +25,12 @@ const AudioBox = memo(function ({offset}: {audioRecord: WateringRecord, offset: 
       className="w-32 h-32 bg-cover bg-center bg-no-repeat transition-transform duration-300"
       style={{
         backgroundImage: `url("/box.png")`,
-        transform: `translate(${offset.x}px, ${offset.y}px)`
+        transform: `translate(${offset.x}px, ${offset.y}px)`,
+        filter: `
+          drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3))
+          drop-shadow(0 8px 16px rgba(0, 0, 0, 0.15))
+          drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4))
+        `
       }}>
         <img src="/CD.png" className="scale-85" />
     </div>
@@ -143,14 +153,14 @@ export default function DigitalLibraryPage() {
       <div 
         ref={scrollAreaRef}
         data-horizontal-scroll
-        className="absolute top-1/4 -translate-y-1/2 left-0 w-full overflow-x-auto overflow-y-hidden scrollbar-hidden px-6"
+        className="absolute top-1/4 -translate-y-1/2 left-0 w-full overflow-x-auto overflow-y-hidden scrollbar-hidden px-12 py-8"
       >
         {/* 内容容器 - 足够宽以容纳所有卡片 */}
-        <div className="flex flex-col gap-12">
+        <div className="flex flex-col gap-16">
           {/* 第一行 - 奇数位放PlantBox，偶数位留空 */}
           <div className="flex gap-8">
             {Array.from({ length: 10 }, (_, i) => (
-              <div key={`row1-${i}`} className="w-32 h-32 flex-shrink-0">
+              <div key={`row1-${i}`} className="w-32 h-32 flex-shrink-0 p-6">
                 {i % 2 === 0 ? (
                   // 奇数位（索引0,2,4...）放PlantBox
                   <PlantBox 
@@ -168,7 +178,7 @@ export default function DigitalLibraryPage() {
           {/* 第二行 - 偶数位放AudioBox，奇数位留空 */}
           <div className="flex gap-8">
             {Array.from({ length: 10 }, (_, i) => (
-              <div key={`row2-${i}`} className="w-32 h-32 flex-shrink-0">
+              <div key={`row2-${i}`} className="w-32 h-32 flex-shrink-0 p-6">
                 {i % 2 === 1 ? (
                   // 偶数位（索引1,3,5...）放AudioBox
                   <AudioBox 
