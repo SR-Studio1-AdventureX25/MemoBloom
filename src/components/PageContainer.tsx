@@ -72,6 +72,11 @@ const PageContainer = () => {
       return // 直接返回，不处理页面切换
     }
 
+    // 检查是否点击在横向滚动区域
+    if ((e.target as Element).closest('[data-horizontal-scroll]')) {
+      return // 直接返回，不处理页面切换，让横向滚动正常工作
+    }
+
     if (isAnimating) return
 
     const touch = e.touches[0]
