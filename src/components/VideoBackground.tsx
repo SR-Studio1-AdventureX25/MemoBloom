@@ -1,6 +1,10 @@
 import { useVideoPlayback } from '@/hooks/useVideoPlayback'
 
-export default function VideoBackground() {
+interface VideoBackgroundProps {
+  showOverlay?: boolean
+}
+
+export default function VideoBackground({ showOverlay = false }: VideoBackgroundProps) {
   const {
     frontVideoRef,
     backVideoRef,
@@ -115,11 +119,16 @@ export default function VideoBackground() {
         <div className="absolute inset-0 bg-gradient-to-br from-green-900 to-blue-900" />
       )}
       
-      {/* 深色遮罩，确保上层内容可读 */}
-      <div className="absolute inset-0 bg-black/30" style={{ zIndex: 10 }} />
-      
-      {/* 渐变遮罩，增强视觉效果 */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/30" style={{ zIndex: 11 }} />
+      {/* 条件性显示遮罩 - 仅在传入showOverlay时显示 */}
+      {showOverlay && (
+        <>
+          {/* 深色遮罩，确保上层内容可读 */}
+          <div className="absolute inset-0 bg-black/30" style={{ zIndex: 10 }} />
+          
+          {/* 渐变遮罩，增强视觉效果 */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/30" style={{ zIndex: 11 }} />
+        </>
+      )}
 
       {/* 调试信息 - 仅在开发环境显示
       {process.env.NODE_ENV === 'development' && (

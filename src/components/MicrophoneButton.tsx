@@ -8,12 +8,14 @@ interface MicrophoneButtonProps {
   plantId: string
   currentGrowthValue: number
   onWateringComplete: (success: boolean, message?: string) => void
+  onRecordingStateChange?: (isRecording: boolean) => void
 }
 
 export default function MicrophoneButton({
   plantId,
   currentGrowthValue,
-  onWateringComplete
+  onWateringComplete,
+  onRecordingStateChange
 }: MicrophoneButtonProps) {
   const { isOnline, addToOfflineQueue, addNotification } = useAppStore()
   const [isRecording, setIsRecording] = useState(false)
@@ -64,6 +66,7 @@ export default function MicrophoneButton({
     if (result.success) {
       setIsRecording(true)
       setRecordingDuration(0)
+      onRecordingStateChange?.(true)
       
       // 开始计时
       durationIntervalRef.current = setInterval(() => {
@@ -143,6 +146,12 @@ export default function MicrophoneButton({
       }
     } catch (error) {
       console.error('浇水提交失败:', error)
+      addNotification({
+        title: '浇水失败',
+        message: '提交失败，请重试',
+        type: 'error',
+        read: false
+      })
       onWateringComplete(false, '提交失败，请重试')
     } finally {
       setIsProcessing(false)
@@ -161,6 +170,7 @@ export default function MicrophoneButton({
 
     setIsRecording(false)
     setRecordingDuration(0)
+    onRecordingStateChange?.(false)
 
     const result = await audioRecorderService.stopRecording()
     if (result.success && result.audioBlob) {
@@ -188,6 +198,7 @@ export default function MicrophoneButton({
 
     setIsRecording(false)
     setRecordingDuration(0)
+    onRecordingStateChange?.(false)
     audioRecorderService.cancelRecording()
 
     addNotification({

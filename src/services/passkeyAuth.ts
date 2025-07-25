@@ -139,25 +139,6 @@ export class PasskeyAuthService {
     }
   }
 
-  // 获取用户友好的错误消息
-  private getUserFriendlyError(error: Error): string {
-    switch (error.name) {
-      case 'NotAllowedError':
-        return '认证被取消或失败，请重试'
-      case 'NotSupportedError':
-        return '您的设备不支持此认证方式'
-      case 'SecurityError':
-        return '安全错误，请检查网络连接'
-      case 'InvalidStateError':
-        return '认证状态无效，请刷新页面后重试'
-      case 'ConstraintError':
-        return '认证约束错误，请联系技术支持'
-      case 'UnknownError':
-        return '未知错误，请重试'
-      default:
-        return '认证失败，请重试'
-    }
-  }
 
   // 清理所有Passkey相关数据
   clearAllPasskeyData(): void {

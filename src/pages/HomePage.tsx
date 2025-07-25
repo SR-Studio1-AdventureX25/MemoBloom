@@ -64,18 +64,21 @@ interface MicrophoneContainerProps {
   plantId: string
   currentGrowthValue: number
   onWateringComplete: (success: boolean, message?: string) => void
+  onRecordingStateChange: (isRecording: boolean) => void
 }
 
 const MicrophoneContainer = memo<MicrophoneContainerProps>(({ 
   plantId, 
   currentGrowthValue, 
-  onWateringComplete 
+  onWateringComplete,
+  onRecordingStateChange
 }) => (
-  <div className="absolute bottom-0 left-0 right-0 z-20 p-6 pb-8">
+  <div className="absolute bottom-0 left-0 right-0 z-20 p-6 pb-12">
     <MicrophoneButton 
       plantId={plantId}
       currentGrowthValue={currentGrowthValue}
       onWateringComplete={onWateringComplete}
+      onRecordingStateChange={onRecordingStateChange}
     />
   </div>
 ))
@@ -85,6 +88,7 @@ MicrophoneContainer.displayName = 'MicrophoneContainer'
 export default function HomePage() {
   const { plants, currentPlantId, setPlants, isOnline, addNotification } = useAppStore()
   const [isLoading, setIsLoading] = useState(true)
+  const [isRecording, setIsRecording] = useState(false)
   const navigate = useNavigate()
 
   // 计算当前植物 - 使用 useMemo 优化性能
@@ -252,7 +256,7 @@ export default function HomePage() {
         </div>
 
         {/* 视频背景 */}
-        <VideoBackground />
+        <VideoBackground showOverlay={isRecording} />
 
 
         {/* 麦克风按钮 */}
@@ -260,6 +264,7 @@ export default function HomePage() {
           plantId={currentPlant.id}
           currentGrowthValue={currentPlant.growthValue}
           onWateringComplete={handleWateringComplete}
+          onRecordingStateChange={setIsRecording}
         />
 
         {/* NFT状态指示器 */}
