@@ -204,13 +204,18 @@ const PageContainer = () => {
     const shadowBlur = 20 + progress * 20
     const shadowOffset = progress * 10
     
+    // 计算圆角 - 当progress为0时无圆角，非0时有固定圆角
+    const isInteger = Math.abs(progress - Math.round(progress)) < 0.001
+    const borderRadius = isInteger ? '0' : '0.75rem' // 0或rounded-xl (0.75rem)
+    
     return {
       transform: `translate3d(0, ${translateY}%, ${translateZ}px) rotateX(${rotateX}deg) scale(${scale})`,
       opacity,
       zIndex: progress < 0.5 ? 2 : 1,
       boxShadow: `0 ${shadowOffset}px ${shadowBlur}px rgba(0, 0, 0, ${shadowOpacity})`,
       filter: `brightness(${1 - progress * 0.1})`,
-      backfaceVisibility: 'hidden' as const
+      backfaceVisibility: 'hidden' as const,
+      borderRadius: borderRadius
     }
   }, [animationProgress])
 
@@ -227,13 +232,18 @@ const PageContainer = () => {
     const shadowBlur = 30 + (1 - progress) * 10
     const shadowOffset = (1 - progress) * 8
     
+    // 计算圆角 - 当progress为1时无圆角，非1时有固定圆角
+    const isInteger = Math.abs(progress - Math.round(progress)) < 0.001
+    const borderRadius = isInteger ? '0' : '0.75rem' // 0或rounded-xl (0.75rem)
+    
     return {
       transform: `translate3d(0, ${translateY}%, ${translateZ}px) rotateX(${rotateX}deg) scale(${scale})`,
       opacity,
       zIndex: progress > 0.5 && progress < 1.5 ? 2 : 1,
       boxShadow: `0 ${shadowOffset}px ${shadowBlur}px rgba(0, 0, 0, ${shadowOpacity})`,
       filter: `brightness(${0.8 + progress * 0.2})`,
-      backfaceVisibility: 'hidden' as const
+      backfaceVisibility: 'hidden' as const,
+      borderRadius: borderRadius
     }
   }, [animationProgress])
 
@@ -250,13 +260,18 @@ const PageContainer = () => {
     const shadowBlur = 40 + (2 - progress) * 15
     const shadowOffset = (2 - progress) * 12
     
+    // 计算圆角 - 当progress为2时无圆角，非2时有固定圆角
+    const isInteger = Math.abs(progress - Math.round(progress)) < 0.001
+    const borderRadius = isInteger ? '0' : '0.75rem' // 0或rounded-xl (0.75rem)
+    
     return {
       transform: `translate3d(0, ${translateY}%, ${translateZ}px) rotateX(${rotateX}deg) scale(${scale})`,
       opacity: Math.max(0, opacity),
       zIndex: progress > 1.5 ? 2 : 1,
       boxShadow: `0 ${shadowOffset}px ${shadowBlur}px rgba(0, 0, 0, ${shadowOpacity})`,
       filter: `brightness(${0.7 + (progress - 1) * 0.3})`,
-      backfaceVisibility: 'hidden' as const
+      backfaceVisibility: 'hidden' as const,
+      borderRadius: borderRadius
     }
   }, [animationProgress])
 
@@ -282,7 +297,7 @@ const PageContainer = () => {
       />
       {/* Home页面 */}
       <div
-        className="absolute inset-0 will-change-transform rounded-xl overflow-hidden"
+        className="absolute inset-0 will-change-transform overflow-hidden"
         style={{
           ...homeStyle,
           transition: isAnimating ? 'none' : 'all 0.3s ease-out',
@@ -294,7 +309,7 @@ const PageContainer = () => {
           className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none"
           style={{
             transform: 'translateZ(8px)',
-            borderRadius: '12px'
+            borderRadius: 'inherit'
           }}
         />
         {/* 页面厚度效果 - 侧面 */}
@@ -308,14 +323,15 @@ const PageContainer = () => {
           }}
         />
         
-        <div className="relative w-full h-full bg-black rounded-xl overflow-hidden border border-white/10">
+        <div className="relative w-full h-full bg-black overflow-hidden border border-white/10"
+             style={{ borderRadius: 'inherit' }}>
           <HomePage />
         </div>
       </div>
 
       {/* Library页面 */}
       <div
-        className="absolute inset-0 will-change-transform rounded-xl overflow-hidden"
+        className="absolute inset-0 will-change-transform overflow-hidden"
         style={{
           ...libraryStyle,
           transition: isAnimating ? 'none' : 'all 0.3s ease-out',
@@ -327,7 +343,7 @@ const PageContainer = () => {
           className="absolute inset-0 bg-gradient-to-b from-purple-300/10 to-transparent pointer-events-none"
           style={{
             transform: 'translateZ(8px)',
-            borderRadius: '12px'
+            borderRadius: 'inherit'
           }}
         />
         {/* 页面厚度效果 - 侧面 */}
@@ -341,17 +357,19 @@ const PageContainer = () => {
           }}
         />
         
-        <div className="relative w-full h-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-xl overflow-hidden border border-purple-400/20">
+        <div className="relative w-full h-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 overflow-hidden border border-purple-400/20"
+             style={{ borderRadius: 'inherit' }}>
           <DigitalLibraryPage />
         </div>
         
         {/* Library页面遮罩，增强层次感 */}
         {animationProgress > 0 && (
           <div 
-            className="absolute inset-0 bg-black pointer-events-none rounded-xl"
+            className="absolute inset-0 bg-black pointer-events-none"
             style={{ 
               opacity: (1 - animationProgress) * 0.3,
-              zIndex: -1 
+              zIndex: -1,
+              borderRadius: 'inherit'
             }}
           />
         )}
@@ -359,7 +377,7 @@ const PageContainer = () => {
 
       {/* Wallet页面 */}
       <div
-        className="absolute inset-0 will-change-transform rounded-xl overflow-hidden"
+        className="absolute inset-0 will-change-transform overflow-hidden"
         style={{
           ...walletStyle,
           transition: isAnimating ? 'none' : 'all 0.3s ease-out',
@@ -371,7 +389,7 @@ const PageContainer = () => {
           className="absolute inset-0 bg-gradient-to-b from-green-300/10 to-transparent pointer-events-none"
           style={{
             transform: 'translateZ(8px)',
-            borderRadius: '12px'
+            borderRadius: 'inherit'
           }}
         />
         {/* 页面厚度效果 - 侧面 */}
@@ -385,17 +403,19 @@ const PageContainer = () => {
           }}
         />
         
-        <div className="relative w-full h-full bg-gradient-to-br from-green-900 via-emerald-900 to-teal-900 rounded-xl overflow-hidden border border-green-400/20">
+        <div className="relative w-full h-full bg-gradient-to-br from-green-900 via-emerald-900 to-teal-900 overflow-hidden border border-green-400/20"
+             style={{ borderRadius: 'inherit' }}>
           <WalletPage />
         </div>
         
         {/* Wallet页面遮罩，增强层次感 */}
         {animationProgress > 1 && (
           <div 
-            className="absolute inset-0 bg-black pointer-events-none rounded-xl"
+            className="absolute inset-0 bg-black pointer-events-none"
             style={{ 
-              opacity: (2 - animationProgress) * 0.3,
-              zIndex: -1 
+              opacity: (1 - animationProgress) * 0.3,
+              zIndex: -1,
+              borderRadius: 'inherit'
             }}
           />
         )}

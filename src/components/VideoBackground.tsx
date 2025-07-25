@@ -5,6 +5,10 @@ interface VideoBackgroundProps {
 }
 
 export default function VideoBackground({ showOverlay = false }: VideoBackgroundProps) {
+  // 阻止整个组件的右键菜单
+  const preventContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault()
+  }
   const {
     frontVideoRef,
     backVideoRef,
@@ -63,40 +67,50 @@ export default function VideoBackground({ showOverlay = false }: VideoBackground
   }
 
   return (
-    <div className="absolute inset-0 overflow-hidden">
+    <div className="absolute inset-0 overflow-hidden" onContextMenu={preventContextMenu}>
       {/* 前景视频 */}
       {frontVideoUrl && (
-        <video
-          key="front-video"
-          ref={frontVideoRef}
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ zIndex: frontVideoActive ? 2 : 1 }}
-          src={frontVideoUrl}
-          autoPlay
-          muted
-          playsInline
-          preload="auto"
-          onCanPlay={handleFrontVideoCanPlay}
-          onError={handleVideoError(currentResourceId || 'unknown')}
-          onEnded={frontVideoActive ? handleVideoEnded : undefined}
-        />
+        <div className="absolute inset-0" style={{ zIndex: frontVideoActive ? 2 : 1 }}>
+          <video
+            key="front-video"
+            ref={frontVideoRef}
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+            src={frontVideoUrl}
+            autoPlay
+            muted
+            playsInline
+            preload="auto"
+            disablePictureInPicture
+            controlsList="nodownload nofullscreen noremoteplayback"
+            onCanPlay={handleFrontVideoCanPlay}
+            onError={handleVideoError(currentResourceId || 'unknown')}
+            onEnded={frontVideoActive ? handleVideoEnded : undefined}
+          />
+          {/* 透明覆盖层，拦截所有鼠标事件 */}
+          <div className="absolute inset-0" onContextMenu={(e) => e.preventDefault()} />
+        </div>
       )}
 
       {/* 背景视频 */}
       {backVideoUrl && (
-        <video
-          key="back-video"
-          ref={backVideoRef}
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ zIndex: frontVideoActive ? 1 : 2 }}
-          src={backVideoUrl}
-          muted
-          playsInline
-          preload="auto"
-          onCanPlay={handleBackVideoCanPlay}
-          onError={handleVideoError('back-video')}
-          onEnded={!frontVideoActive ? handleVideoEnded : undefined}
-        />
+        <div className="absolute inset-0" style={{ zIndex: frontVideoActive ? 1 : 2 }}>
+          <video
+            key="back-video"
+            ref={backVideoRef}
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+            src={backVideoUrl}
+            muted
+            playsInline
+            preload="auto"
+            disablePictureInPicture
+            controlsList="nodownload nofullscreen noremoteplayback"
+            onCanPlay={handleBackVideoCanPlay}
+            onError={handleVideoError('back-video')}
+            onEnded={!frontVideoActive ? handleVideoEnded : undefined}
+          />
+          {/* 透明覆盖层，拦截所有鼠标事件 */}
+          <div className="absolute inset-0" onContextMenu={(e) => e.preventDefault()} />
+        </div>
       )}
 
       {/* 没有资源时显示渐变背景 */}
