@@ -58,7 +58,7 @@ export default defineConfig({
         description: 'A Web game about plant cultivation',
         theme_color: '#10b981',
         background_color: '#000000',
-        display: 'standalone',
+        display: 'fullscreen',
         scope: '/',
         start_url: '/?source=pwa',
         icons: [

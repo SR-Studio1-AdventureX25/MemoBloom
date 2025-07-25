@@ -32,30 +32,55 @@ class SyncService {
       return false
     }
 
-    // 检查是否过期或不完整
+    // 检查是否过期
     const isExpired = !syncStatus.lastSync || (now - syncStatus.lastSync) > SYNC_CONFIG.SYNC_INTERVAL
-    const isIncomplete = !syncStatus.isComplete
+    
+    // 检查同步状态是否完整
+    const isSyncIncomplete = !syncStatus.isComplete
 
-    // 植物特定的不完整检查
+    // 植物特定的检查
     if (type === 'plant') {
       const plant = entity as Plant
-      return isExpired || isIncomplete || 
-             plant.syncStatus !== 'complete' || 
-             !plant.lastSyncTime ||
-             !plant.userRecentStatus ||
-             plant.personalityTags.length === 0
+      
+      // 基本同步状态检查
+      const basicIncomplete = plant.syncStatus !== 'complete' || !plant.lastSyncTime
+      
+      // 数据完整性检查（放宽条件，允许某些字段为空）
+      const dataIncomplete = false // 暂时禁用严格的数据完整性检查
+      
+      const needSync = isExpired || isSyncIncomplete || basicIncomplete || dataIncomplete
+      
+      // 只在需要同步时输出日志
+      if (needSync) {
+        console.log(`植物需要同步 [${entity.id}]:`, {
+          isExpired,
+          isSyncIncomplete,
+          basicIncomplete
+        })
+      }
+      
+      return needSync
     }
 
-    // 浇水记录特定的不完整检查
+    // 浇水记录特定的检查
     if (type === 'watering') {
-      const record = entity as WateringRecord
-      return isExpired || isIncomplete ||
-             !record.memoryText ||
-             !record.emotionTags ||
-             record.emotionTags.length === 0
+      // 数据完整性检查（放宽条件）
+      const dataIncomplete = false // 暂时禁用严格的数据完整性检查
+      
+      const needSync = isExpired || isSyncIncomplete || dataIncomplete
+      
+      // 只在需要同步时输出日志
+      if (needSync) {
+        console.log(`浇水记录需要同步 [${entity.id}]:`, {
+          isExpired,
+          isSyncIncomplete
+        })
+      }
+      
+      return needSync
     }
 
-    return isExpired || isIncomplete
+    return isExpired || isSyncIncomplete
   }
 
   /**
