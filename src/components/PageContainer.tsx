@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import HomePage from '@/pages/HomePage'
 import DigitalLibraryPage from '@/pages/DigitalLibrary'
 
@@ -18,6 +18,7 @@ const PageContainer = () => {
   const containerRef = useRef<HTMLDivElement>(null)
   const touchInfoRef = useRef<TouchInfo | null>(null)
   const animationFrameRef = useRef<number | undefined>(undefined)
+  const rafRef = useRef<number | undefined>(undefined) // 用于节流的RAF引用
 
   // 手势检测配置
   const SWIPE_THRESHOLD = 50 // 最小滑动距离
@@ -57,8 +58,8 @@ const PageContainer = () => {
     animationFrameRef.current = requestAnimationFrame(animate)
   }, [animationProgress])
 
-  // 触摸开始
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+  // 原生触摸开始处理函数
+  const handleNativeTouchStart = useCallback((e: TouchEvent) => {
     if (isAnimating) return
 
     const touch = e.touches[0]
@@ -69,8 +70,20 @@ const PageContainer = () => {
     }
   }, [isAnimating])
 
-  // 触摸移动
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+  // 使用RAF节流的更新进度函数
+  const updateProgress = useCallback((progress: number) => {
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current)
+    }
+    
+    rafRef.current = requestAnimationFrame(() => {
+      setAnimationProgress(progress)
+      rafRef.current = undefined
+    })
+  }, [])
+
+  // 原生触摸移动处理函数
+  const handleNativeTouchMove = useCallback((e: TouchEvent) => {
     if (!touchInfoRef.current || isAnimating) return
 
     const touch = e.touches[0]
@@ -89,14 +102,15 @@ const PageContainer = () => {
       progress = Math.max(0, Math.min(1, 1 + progress)) // library页面下滑时progress从1减少到0
     }
     
-    setAnimationProgress(progress)
+    // 使用RAF节流的更新
+    updateProgress(progress)
 
     // 防止页面滚动
     e.preventDefault()
-  }, [isAnimating, currentPage])
+  }, [isAnimating, currentPage, updateProgress])
 
-  // 触摸结束
-  const handleTouchEnd = useCallback(() => {
+  // 原生触摸结束处理函数
+  const handleNativeTouchEnd = useCallback(() => {
     if (!touchInfoRef.current || isAnimating) return
 
     const { startY, startTime, currentY } = touchInfoRef.current
@@ -124,63 +138,88 @@ const PageContainer = () => {
     touchInfoRef.current = null
   }, [isAnimating, currentPage, startAnimation])
 
-  // 清理动画帧
+
+  // 设置触摸事件监听器
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    // 添加非被动触摸事件监听器
+    container.addEventListener('touchstart', handleNativeTouchStart, { passive: false })
+    container.addEventListener('touchmove', handleNativeTouchMove, { passive: false })
+    container.addEventListener('touchend', handleNativeTouchEnd, { passive: false })
+
+    return () => {
+      container.removeEventListener('touchstart', handleNativeTouchStart)
+      container.removeEventListener('touchmove', handleNativeTouchMove)
+      container.removeEventListener('touchend', handleNativeTouchEnd)
+    }
+  }, [handleNativeTouchStart, handleNativeTouchMove, handleNativeTouchEnd])
+
+  // 清理动画帧和RAF节流
   useEffect(() => {
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current)
       }
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current)
+      }
     }
   }, [])
 
-  // 计算3D变换样式
-  const getTransformStyle = (isLibrary: boolean) => {
+  // 使用useMemo缓存样式计算
+  const homeStyle = useMemo(() => {
     const progress = animationProgress
+    const translateY = progress * -100
+    const translateZ = progress * 150
+    const rotateX = progress * -20
+    const scale = 1 - progress * 0.15
+    const opacity = 1 - progress * 0.4
     
-    if (isLibrary) {
-      // Library页面：从下方移入
-      const translateY = (1 - progress) * 100
-      const translateZ = (1 - progress) * -200 // 增加Z轴深度
-      const rotateX = (1 - progress) * 25 // 增加旋转角度
-      const scale = 0.85 + progress * 0.15 // 更明显的缩放效果
-      const opacity = progress * 0.9 + 0.1
-      
-      // 计算阴影强度
-      const shadowOpacity = progress * 0.6
-      const shadowBlur = 30 + (1 - progress) * 20
-      const shadowOffset = (1 - progress) * 10
-      
-      return {
-        transform: `translateY(${translateY}%) translateZ(${translateZ}px) rotateX(${rotateX}deg) scale(${scale})`,
-        opacity,
-        zIndex: progress > 0.5 ? 2 : 1,
-        boxShadow: `0 ${shadowOffset}px ${shadowBlur}px rgba(0, 0, 0, ${shadowOpacity}), 
-                   0 ${shadowOffset * 2}px ${shadowBlur * 2}px rgba(0, 0, 0, ${shadowOpacity * 0.3})`,
-        filter: `brightness(${0.7 + progress * 0.3})` // 环境光影效果
-      }
-    } else {
-      // Home页面：向上移出
-      const translateY = progress * -100
-      const translateZ = progress * 150 // Z轴向前移动
-      const rotateX = progress * -20 // 增加旋转角度
-      const scale = 1 - progress * 0.15 // 更明显的缩小效果
-      const opacity = 1 - progress * 0.4
-      
-      // 计算阴影强度
-      const shadowOpacity = (1 - progress) * 0.4 + progress * 0.8
-      const shadowBlur = 20 + progress * 40
-      const shadowOffset = progress * 15
-      
-      return {
-        transform: `translateY(${translateY}%) translateZ(${translateZ}px) rotateX(${rotateX}deg) scale(${scale})`,
-        opacity,
-        zIndex: progress < 0.5 ? 2 : 1,
-        boxShadow: `0 ${shadowOffset}px ${shadowBlur}px rgba(0, 0, 0, ${shadowOpacity}), 
-                   0 ${shadowOffset * 1.5}px ${shadowBlur * 1.5}px rgba(0, 0, 0, ${shadowOpacity * 0.4})`,
-        filter: `brightness(${1 - progress * 0.2})` // 环境光影效果
-      }
+    // 简化阴影计算
+    const shadowOpacity = (1 - progress) * 0.3 + progress * 0.5
+    const shadowBlur = 20 + progress * 20
+    const shadowOffset = progress * 10
+    
+    return {
+      transform: `translate3d(0, ${translateY}%, ${translateZ}px) rotateX(${rotateX}deg) scale(${scale})`,
+      opacity,
+      zIndex: progress < 0.5 ? 2 : 1,
+      boxShadow: `0 ${shadowOffset}px ${shadowBlur}px rgba(0, 0, 0, ${shadowOpacity})`,
+      filter: `brightness(${1 - progress * 0.1})`,
+      backfaceVisibility: 'hidden' as const
     }
-  }
+  }, [animationProgress])
+
+  const libraryStyle = useMemo(() => {
+    const progress = animationProgress
+    const translateY = (1 - progress) * 100
+    const translateZ = (1 - progress) * -200
+    const rotateX = (1 - progress) * 25
+    const scale = 0.85 + progress * 0.15
+    const opacity = progress * 0.9 + 0.1
+    
+    // 简化阴影计算
+    const shadowOpacity = progress * 0.4
+    const shadowBlur = 30 + (1 - progress) * 10
+    const shadowOffset = (1 - progress) * 8
+    
+    return {
+      transform: `translate3d(0, ${translateY}%, ${translateZ}px) rotateX(${rotateX}deg) scale(${scale})`,
+      opacity,
+      zIndex: progress > 0.5 ? 2 : 1,
+      boxShadow: `0 ${shadowOffset}px ${shadowBlur}px rgba(0, 0, 0, ${shadowOpacity})`,
+      filter: `brightness(${0.8 + progress * 0.2})`,
+      backfaceVisibility: 'hidden' as const
+    }
+  }, [animationProgress])
+
+  // 环境背景样式缓存
+  const backgroundStyle = useMemo(() => ({
+    transform: `translateZ(-500px) scale(1.25)`,
+    opacity: animationProgress * 0.3
+  }), [animationProgress])
 
   return (
     <div 
@@ -190,23 +229,17 @@ const PageContainer = () => {
         perspective: '2000px', // 增加perspective距离，获得更强的3D效果
         perspectiveOrigin: '50% 50%' // 设置透视原点
       }}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
     >
       {/* 3D环境背景 */}
       <div 
         className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-gray-200/40 pointer-events-none"
-        style={{
-          transform: `translateZ(-500px) scale(1.25)`,
-          opacity: animationProgress * 0.3
-        }}
+        style={backgroundStyle}
       />
       {/* Home页面 */}
       <div
         className="absolute inset-0 will-change-transform rounded-xl overflow-hidden"
         style={{
-          ...getTransformStyle(false),
+          ...homeStyle,
           transition: isAnimating ? 'none' : 'all 0.3s ease-out',
           transformStyle: 'preserve-3d'
         }}
@@ -239,7 +272,7 @@ const PageContainer = () => {
       <div
         className="absolute inset-0 will-change-transform rounded-xl overflow-hidden"
         style={{
-          ...getTransformStyle(true),
+          ...libraryStyle,
           transition: isAnimating ? 'none' : 'all 0.3s ease-out',
           transformStyle: 'preserve-3d'
         }}
@@ -306,3 +339,4 @@ const PageContainer = () => {
 }
 
 export default PageContainer
+
