@@ -8,7 +8,7 @@ export default function DigitalLibraryPage() {
 
   useEffect(() => {
     if (scrollAreaRef.current) {
-      // 页面加载时向右滚动 300px
+      // 页面加载时向右滚动 90px
       scrollAreaRef.current.scrollLeft = 90;
     }
   }, []);
