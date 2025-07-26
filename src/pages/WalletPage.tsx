@@ -6,6 +6,7 @@ import { passkeyAuth } from '@/services/passkeyAuth'
 import { walletCrypto } from '@/services/walletCrypto'
 import PinInput from '@/components/wallet/PinInput'
 import MnemonicDisplay from '@/components/wallet/MnemonicDisplay'
+import MnemonicImport from '@/components/wallet/MnemonicImport'
 import type { WalletSetupStep, WalletPageState, Plant, WateringRecord } from '@/types'
 
 export default function WalletPage() {
@@ -177,28 +178,51 @@ export default function WalletPage() {
 
   // 渲染无钱包状态
   const renderNoWallet = () => (
-    <div className="text-center">
+    <div className="text-center max-w-sm mx-auto">
       <div className="mb-8">
         <div className="text-6xl mb-4">🔐</div>
-        <h1 className="text-3xl font-bold text-white mb-2">创建钱包</h1>
+        <h1 className="text-3xl font-bold text-white mb-2">钱包设置</h1>
         <p className="text-white/70">为您的NFT资产创建安全的钱包</p>
       </div>
-
-      <div className="space-y-4 max-w-sm mx-auto">
+      
+      <div className="space-y-4 mb-6">
         <button
-          onClick={() => setPageState('setup')}
-          className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white py-4 px-6 rounded-xl transition-all duration-200 font-semibold flex items-center justify-center space-x-2"
+          onClick={handleGenerateMnemonic}
+          className="w-full bg-white/10 hover:bg-white/20 text-white py-4 px-4 rounded-lg transition-all duration-200 backdrop-blur-sm border border-white/20 flex items-center space-x-3"
         >
-          <span>✨</span>
-          <span>创建新钱包</span>
+          <span className="text-2xl">✨</span>
+          <div className="text-left">
+            <div className="font-semibold">创建新钱包</div>
+            <div className="text-sm text-white/70">生成新的助记词</div>
+          </div>
         </button>
 
-        <div className="text-white/50 text-sm">
-          钱包将安全地存储在您的设备上
-        </div>
+        <button
+          onClick={() => {
+            setPageState('setup')
+            setSetupStep('import-mnemonic')
+          }}
+          className="w-full bg-white/10 hover:bg-white/20 text-white py-4 px-4 rounded-lg transition-all duration-200 backdrop-blur-sm border border-white/20 flex items-center space-x-3"
+        >
+          <span className="text-2xl">📥</span>
+          <div className="text-left">
+            <div className="font-semibold">导入现有钱包</div>
+            <div className="text-sm text-white/70">使用已有的助记词</div>
+          </div>
+        </button>
+      </div>
+
+      <div className="text-white/50 text-sm">
+        钱包将安全地存储在您的设备上
       </div>
     </div>
   )
+
+  // 处理导入助记词完成
+  const handleImportComplete = (mnemonic: string) => {
+    setGeneratedMnemonic(mnemonic)
+    setSetupStep('choose-auth')
+  }
 
   // 渲染钱包设置流程
   const renderWalletSetup = () => {
@@ -206,13 +230,14 @@ export default function WalletPage() {
       case 'welcome':
         return (
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-white mb-6">创建钱包</h2>
+            <h2 className="text-2xl font-bold text-white mb-6">钱包设置</h2>
             <div className="space-y-4 max-w-sm mx-auto">
               <button
-                onClick={handleGenerateMnemonic}
-                className="w-full bg-white/10 hover:bg-white/20 text-white py-3 px-4 rounded-lg transition-all duration-200 backdrop-blur-sm border border-white/20"
+                onClick={() => setSetupStep('choose-method')}
+                className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white py-4 px-6 rounded-xl transition-all duration-200 font-semibold flex items-center justify-center space-x-2"
               >
-                生成助记词
+                <span>🚀</span>
+                <span>开始设置</span>
               </button>
               <button
                 onClick={() => setPageState('no-wallet')}
@@ -222,6 +247,52 @@ export default function WalletPage() {
               </button>
             </div>
           </div>
+        )
+
+      case 'choose-method':
+        return (
+          <div className="text-center max-w-sm mx-auto">
+            <h2 className="text-2xl font-bold text-white mb-6">选择设置方式</h2>
+            
+            <div className="space-y-4 mb-6">
+              <button
+                onClick={handleGenerateMnemonic}
+                className="w-full bg-white/10 hover:bg-white/20 text-white py-4 px-4 rounded-lg transition-all duration-200 backdrop-blur-sm border border-white/20 flex items-center space-x-3"
+              >
+                <span className="text-2xl">✨</span>
+                <div className="text-left">
+                  <div className="font-semibold">创建新钱包</div>
+                  <div className="text-sm text-white/70">生成新的助记词</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => setSetupStep('import-mnemonic')}
+                className="w-full bg-white/10 hover:bg-white/20 text-white py-4 px-4 rounded-lg transition-all duration-200 backdrop-blur-sm border border-white/20 flex items-center space-x-3"
+              >
+                <span className="text-2xl">📥</span>
+                <div className="text-left">
+                  <div className="font-semibold">导入现有钱包</div>
+                  <div className="text-sm text-white/70">使用已有的助记词</div>
+                </div>
+              </button>
+            </div>
+
+            <button
+              onClick={() => setSetupStep('welcome')}
+              className="w-full text-white/60 hover:text-white py-2 px-4 rounded-lg transition-all duration-200"
+            >
+              返回
+            </button>
+          </div>
+        )
+
+      case 'import-mnemonic':
+        return (
+          <MnemonicImport
+            onImportComplete={handleImportComplete}
+            onCancel={() => setPageState('no-wallet')}
+          />
         )
 
       case 'backup-mnemonic':
@@ -275,7 +346,7 @@ export default function WalletPage() {
             </div>
 
             <button
-              onClick={() => setSetupStep('backup-mnemonic')}
+              onClick={() => setSetupStep('choose-method')}
               className="w-full text-white/60 hover:text-white py-2 px-4 rounded-lg transition-all duration-200"
             >
               返回
@@ -689,16 +760,6 @@ export default function WalletPage() {
       {/* 主要内容 */}
       <div className="relative z-10 p-6 pt-16 min-h-screen flex items-center justify-center">
         {renderContent()}
-      </div>
-
-      {/* 上滑提示 */}
-      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-center">
-        <div className="inline-flex items-center text-white/60">
-          <svg className="w-5 h-5 mr-2 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l7-7 7 7m-7-7v18" />
-          </svg>
-          <span className="text-sm">上滑返回数字图书馆</span>
-        </div>
       </div>
     </div>
   )

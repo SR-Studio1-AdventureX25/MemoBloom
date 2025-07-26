@@ -20,28 +20,35 @@ const MnemonicDisplay = ({
   showNumbers = true
 }: MnemonicDisplayProps) => {
   const [isRevealed, setIsRevealed] = useState(!blur)
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+  const [currentPage, setCurrentPage] = useState(0)
 
   const words = mnemonic.trim().split(' ').filter(word => word.length > 0)
-
-  const copyToClipboard = async (text: string, index?: number) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      if (typeof index === 'number') {
-        setCopiedIndex(index)
-        setTimeout(() => setCopiedIndex(null), 2000)
-      }
-    } catch (error) {
-      console.error('复制失败:', error)
-    }
-  }
-
-  const copyAllWords = () => {
-    copyToClipboard(mnemonic)
+  const wordsPerPage = 4 // 每页显示4个单词
+  const totalPages = Math.ceil(words.length / wordsPerPage)
+  
+  const getCurrentPageWords = () => {
+    const startIndex = currentPage * wordsPerPage
+    const endIndex = startIndex + wordsPerPage
+    return words.slice(startIndex, endIndex).map((word, index) => ({
+      word,
+      originalIndex: startIndex + index
+    }))
   }
 
   const toggleReveal = () => {
     setIsRevealed(!isRevealed)
+  }
+
+  const nextPage = () => {
+    if (currentPage < totalPages - 1) {
+      setCurrentPage(currentPage + 1)
+    }
+  }
+
+  const prevPage = () => {
+    if (currentPage > 0) {
+      setCurrentPage(currentPage - 1)
+    }
   }
 
   return (
@@ -68,7 +75,7 @@ const MnemonicDisplay = ({
         </div>
       </div>
 
-      {/* 助记词网格 */}
+      {/* 助记词分段显示 */}
       <div className="relative">
         {/* 模糊遮罩 */}
         {blur && !isRevealed && (
@@ -83,60 +90,81 @@ const MnemonicDisplay = ({
           </div>
         )}
 
+        {/* 页面指示器 */}
+        <div className="flex justify-center items-center mb-4">
+          <div className="flex space-x-2">
+            {Array.from({ length: totalPages }, (_, index) => (
+              <div
+                key={index}
+                className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                  index === currentPage ? 'bg-white' : 'bg-white/30'
+                }`}
+              />
+            ))}
+          </div>
+          <div className="ml-4 text-white/60 text-sm">
+            {currentPage + 1} / {totalPages}
+          </div>
+        </div>
+
+        {/* 当前页助记词 */}
         <div className="grid grid-cols-2 gap-3 mb-6">
-          {words.map((word, index) => (
+          {getCurrentPageWords().map(({ word, originalIndex }) => (
             <div
-              key={index}
-              onClick={() => copyToClipboard(word, index)}
-              className="bg-white/10 border border-white/20 rounded-lg p-3 cursor-pointer hover:bg-white/20 transition-all duration-200 backdrop-blur-sm group"
+              key={originalIndex}
+              className="bg-white/10 border border-white/20 rounded-lg p-3 backdrop-blur-sm"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  {showNumbers && (
-                    <span className="text-white/50 text-sm font-mono w-6">
-                      {index + 1}.
-                    </span>
-                  )}
-                  <span className="text-white font-medium font-mono">
-                    {word}
+              <div className="flex items-center space-x-2">
+                {showNumbers && (
+                  <span className="text-white/50 text-sm font-mono w-6">
+                    {originalIndex + 1}.
                   </span>
-                </div>
-                
-                {/* 复制状态指示 */}
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  {copiedIndex === index ? (
-                    <span className="text-green-400 text-xs">✓</span>
-                  ) : (
-                    <span className="text-white/50 text-xs">📋</span>
-                  )}
-                </div>
+                )}
+                <span className="text-white font-medium font-mono">
+                  {word}
+                </span>
               </div>
             </div>
           ))}
+        </div>
+
+        {/* 分页导航 */}
+        <div className="flex justify-between items-center mb-6">
+          <button
+            onClick={prevPage}
+            disabled={currentPage === 0}
+            className="bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed text-white py-2 px-4 rounded-lg transition-all duration-200 backdrop-blur-sm border border-white/20 flex items-center space-x-2"
+          >
+            <span>←</span>
+            <span>上一页</span>
+          </button>
+
+          <div className="text-white/60 text-sm">
+            请逐页记录所有助记词
+          </div>
+
+          <button
+            onClick={nextPage}
+            disabled={currentPage === totalPages - 1}
+            className="bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed text-white py-2 px-4 rounded-lg transition-all duration-200 backdrop-blur-sm border border-white/20 flex items-center space-x-2"
+          >
+            <span>下一页</span>
+            <span>→</span>
+          </button>
         </div>
       </div>
 
       {/* 操作按钮 */}
       <div className="space-y-3">
-        <div className="flex space-x-3">
+        {blur && (
           <button
-            onClick={copyAllWords}
-            className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 px-4 rounded-lg transition-all duration-200 backdrop-blur-sm border border-white/20 flex items-center justify-center space-x-2"
+            onClick={toggleReveal}
+            className="w-full bg-white/10 hover:bg-white/20 text-white py-3 px-4 rounded-lg transition-all duration-200 backdrop-blur-sm border border-white/20 flex items-center justify-center space-x-2"
           >
-            <span>📋</span>
-            <span>复制全部</span>
+            <span>{isRevealed ? '🙈' : '👁️'}</span>
+            <span>{isRevealed ? '隐藏助记词' : '显示助记词'}</span>
           </button>
-          
-          {blur && (
-            <button
-              onClick={toggleReveal}
-              className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 px-4 rounded-lg transition-all duration-200 backdrop-blur-sm border border-white/20 flex items-center justify-center space-x-2"
-            >
-              <span>{isRevealed ? '🙈' : '👁️'}</span>
-              <span>{isRevealed ? '隐藏' : '显示'}</span>
-            </button>
-          )}
-        </div>
+        )}
 
         {showConfirmButton && onConfirm && (
           <button
@@ -148,9 +176,10 @@ const MnemonicDisplay = ({
         )}
       </div>
 
-      {/* 提示信息 */}
+      {/* 安全提示信息 */}
       <div className="mt-4 text-center text-white/50 text-xs">
-        点击单个助记词可复制，助记词顺序很重要
+        <div className="mb-1">🔒 为了您的资产安全，已禁用复制功能</div>
+        <div>请手动记录助记词到安全的地方</div>
       </div>
     </div>
   )

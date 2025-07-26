@@ -54,6 +54,8 @@ export interface PinAttempt {
 // 钱包设置步骤
 export type WalletSetupStep = 
   | 'welcome'           // 欢迎页面
+  | 'choose-method'     // 选择创建或导入
+  | 'import-mnemonic'   // 导入助记词
   | 'choose-auth'       // 选择认证方式
   | 'generate-mnemonic' // 生成助记词
   | 'backup-mnemonic'   // 备份助记词
