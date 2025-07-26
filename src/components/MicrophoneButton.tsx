@@ -4,7 +4,7 @@ import { audioRecorderService, AudioRecorderService } from '@/services/audioReco
 import { speechRecognitionService } from '@/services/speechRecognition'
 import { aiAnalysisService } from '@/services/aiAnalysis'
 import { apiService } from '@/services/api'
-import { markPlantAndRecordsModified } from '@/services/syncService'
+import { startWateringRecordSync } from '@/services/syncService'
 import type { WateringRecord } from '@/types'
 
 interface MicrophoneButtonProps {
@@ -201,8 +201,8 @@ export default function MicrophoneButton({
           addWateringRecord(localRecord)
           console.log('浇水记录已保存到本地store:', localRecord.id)
 
-          // 标记植物和浇水记录已修改，触发智能同步
-          markPlantAndRecordsModified(plantId, localRecord.id)
+          // 启动浇水记录的自动同步
+          startWateringRecordSync(localRecord.id)
 
           onWateringComplete(true, analysisMessage, emotionResult)
         } catch (error) {

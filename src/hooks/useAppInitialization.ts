@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { pwaService } from '@/services/pwa'
 import { useAppStore } from '@/store'
+import { restartPendingSyncs } from '@/services/syncService'
 
 // 配置常量
 const APP_CONFIG = {
@@ -80,6 +81,11 @@ export const useAppInitialization = () => {
       
       // 初始化PWA服务
       await pwaService.init()
+      
+      // 重启待处理的同步任务
+      setTimeout(() => {
+        restartPendingSyncs()
+      }, 1000)
       
       // 应用准备就绪
       setAppReady()

@@ -1,220 +1,158 @@
 import { useEffect, useCallback, useState, useMemo } from 'react'
 import { useAppStore } from '@/store'
-import { syncService } from '@/services/syncService'
+import { syncService, startWateringRecordSync, getFailedSyncCount, hasPendingSync, restartPendingSyncs, cleanup } from '@/services/syncService'
 
 export interface SyncState {
   isSyncing: boolean
   lastSyncTime: number
   error?: string
-  plantsUpdated: number
-  recordsUpdated: number
+  failedCount: number
 }
 
 export function useSmartSync() {
   const { isOnline, lastGlobalSync, addNotification, plants, wateringRecords, getSyncStatus } = useAppStore()
-  const [lastSyncResult, setLastSyncResult] = useState<{ plantsUpdated: number; recordsUpdated: number }>({
-    plantsUpdated: 0,
-    recordsUpdated: 0
-  })
   
   // 计算全局同步状态
   const syncState = useMemo((): SyncState => {
     // 检查是否有任何数据正在同步
-    const isSyncing = plants.some(plant => getSyncStatus(plant.id, 'plant').isSyncing) ||
-                     wateringRecords.some(record => getSyncStatus(record.id, 'watering').isSyncing)
+    const isSyncing = hasPendingSync()
     
-    // 获取同步错误
+    // 获取失败的同步记录数量
+    const failedCount = getFailedSyncCount()
+    
+    // 获取同步错误（取第一个错误）
     const plantErrors = plants.map(plant => getSyncStatus(plant.id, 'plant').error).filter(Boolean)
     const recordErrors = wateringRecords.map(record => getSyncStatus(record.id, 'watering').error).filter(Boolean)
-    const error = [...plantErrors, ...recordErrors][0] // 取第一个错误
+    const error = [...plantErrors, ...recordErrors][0]
     
     return {
       isSyncing,
       lastSyncTime: lastGlobalSync,
       error,
-      plantsUpdated: lastSyncResult.plantsUpdated,
-      recordsUpdated: lastSyncResult.recordsUpdated
+      failedCount
     }
-  }, [plants, wateringRecords, lastGlobalSync, getSyncStatus, lastSyncResult])
+  }, [plants, wateringRecords, lastGlobalSync, getSyncStatus])
 
-  // 手动触发同步
-  const triggerSync = useCallback(async () => {
-    if (syncState.isSyncing) {
-      console.log('同步已在进行中，跳过手动同步')
-      return
-    }
-
+  // 启动浇水记录同步
+  const startWateringSync = useCallback((recordId: string) => {
     if (!isOnline) {
-      console.log('网络离线，跳过同步')
+      console.log('网络离线，跳过浇水记录同步')
       return
     }
 
-    try {
-      const result = await syncService.smartSync()
-      
-      // 更新最后同步结果
-      setLastSyncResult({
-        plantsUpdated: result.plantsUpdated,
-        recordsUpdated: result.recordsUpdated
-      })
+    startWateringRecordSync(recordId)
+  }, [isOnline])
 
-      // 如果有更新，显示通知
-      if (result.plantsUpdated > 0 || result.recordsUpdated > 0) {
-        addNotification({
-          title: '数据同步完成',
-          message: `已更新 ${result.plantsUpdated} 个植物和 ${result.recordsUpdated} 条记录`,
-          type: 'success',
-          read: false
-        })
-      }
-
-      console.log('智能同步完成:', result)
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '同步失败'
-      
+  // 手动重试失败的同步
+  const retryFailedSyncs = useCallback(async () => {
+    if (!isOnline) {
       addNotification({
-        title: '同步失败',
-        message: errorMessage,
-        type: 'error',
+        title: '网络离线',
+        message: '请检查网络连接后重试',
+        type: 'warning',
         read: false
       })
-
-      console.error('同步失败:', error)
-    }
-  }, [syncState.isSyncing, isOnline, addNotification])
-
-  // 后台同步
-  const backgroundSync = useCallback(() => {
-    if (!isOnline || syncState.isSyncing) {
       return
     }
 
-    syncService.backgroundSync()
-  }, [isOnline, syncState.isSyncing])
+    const store = useAppStore.getState()
+    const { plants, wateringRecords } = store
 
-  // 网络状态变化时触发同步
+    let retryCount = 0
+
+    // 重试失败的浇水记录
+    for (const record of wateringRecords) {
+      const status = getSyncStatus(record.id, 'watering')
+      if (status.isFailed) {
+        console.log(`重试失败的浇水记录同步: ${record.id}`)
+        
+        // 重置失败状态
+        store.setSyncStatus(record.id, 'watering', {
+          isFailed: false,
+          retryCount: 0,
+          error: undefined
+        })
+        
+        // 重新启动同步
+        startWateringRecordSync(record.id)
+        retryCount++
+      }
+    }
+
+    // 重试失败的植物记录
+    for (const plant of plants) {
+      const status = getSyncStatus(plant.id, 'plant')
+      if (status.isFailed) {
+        console.log(`重试失败的植物同步: ${plant.id}`)
+        
+        // 重置失败状态
+        store.setSyncStatus(plant.id, 'plant', {
+          isFailed: false,
+          error: undefined
+        })
+        
+        // 重新启动同步
+        try {
+          await syncService.syncSinglePlant(plant.id)
+          retryCount++
+        } catch (error) {
+          console.error(`重试植物同步失败: ${plant.id}`, error)
+        }
+      }
+    }
+
+    if (retryCount > 0) {
+      addNotification({
+        title: '重试同步',
+        message: `已重新启动 ${retryCount} 个失败的同步任务`,
+        type: 'info',
+        read: false
+      })
+    } else {
+      addNotification({
+        title: '无需重试',
+        message: '当前没有失败的同步任务',
+        type: 'info',
+        read: false
+      })
+    }
+  }, [isOnline, addNotification, getSyncStatus])
+
+  // 网络状态变化时重启待处理的同步
   useEffect(() => {
-    if (isOnline && !syncState.isSyncing) {
-      // 网络恢复时，延迟1秒后触发同步
+    if (isOnline) {
+      // 网络恢复时，延迟1秒后重启待处理的同步
       const timer = setTimeout(() => {
-        backgroundSync()
+        restartPendingSyncs()
       }, 1000)
 
       return () => clearTimeout(timer)
     }
-  }, [isOnline, syncState.isSyncing, backgroundSync])
+  }, [isOnline])
 
-  // 应用启动后的初始同步
+  // 应用启动后重启待处理的同步
   useEffect(() => {
-    // 应用启动5秒后进行首次同步
+    // 应用启动3秒后重启待处理的同步
     const timer = setTimeout(() => {
-      if (isOnline && !syncState.isSyncing) {
-        backgroundSync()
+      if (isOnline) {
+        restartPendingSyncs()
       }
-    }, 5000)
+    }, 3000)
 
     return () => clearTimeout(timer)
   }, []) // 只在组件挂载时执行一次
 
-  // 定期同步 (每10分钟)
+  // 清理定时器
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (isOnline && !syncState.isSyncing) {
-        backgroundSync()
-      }
-    }, 10 * 60 * 1000) // 10分钟
-
-    return () => clearInterval(interval)
-  }, [isOnline, syncState.isSyncing, backgroundSync])
-
-  // 清理卡住的同步状态
-  useEffect(() => {
-    const cleanupStuckSyncStates = () => {
-      const now = Date.now()
-      const SYNC_TIMEOUT = 30 * 1000 // 30秒超时
-      
-      // 检查植物同步状态
-      plants.forEach(plant => {
-        const syncStatus = getSyncStatus(plant.id, 'plant')
-        if (syncStatus.isSyncing && syncStatus.lastSync && 
-            (now - syncStatus.lastSync) > SYNC_TIMEOUT) {
-          console.warn(`清理卡住的植物同步状态: ${plant.id}`)
-          useAppStore.getState().setSyncStatus(plant.id, 'plant', { 
-            isSyncing: false,
-            error: '同步超时，已自动重置'
-          })
-        }
-      })
-      
-      // 检查浇水记录同步状态
-      wateringRecords.forEach(record => {
-        const syncStatus = getSyncStatus(record.id, 'watering')
-        if (syncStatus.isSyncing && syncStatus.lastSync && 
-            (now - syncStatus.lastSync) > SYNC_TIMEOUT) {
-          console.warn(`清理卡住的浇水记录同步状态: ${record.id}`)
-          useAppStore.getState().setSyncStatus(record.id, 'watering', { 
-            isSyncing: false,
-            error: '同步超时，已自动重置'
-          })
-        }
-      })
+    return () => {
+      cleanup()
     }
-    
-    // 应用启动时立即清理一次
-    cleanupStuckSyncStates()
-    
-    // 每分钟检查一次
-    const interval = setInterval(cleanupStuckSyncStates, 60 * 1000)
-    return () => clearInterval(interval)
-  }, [plants, wateringRecords, getSyncStatus])
+  }, [])
 
   return {
     syncState,
-    triggerSync,
-    backgroundSync
-  }
-}
-
-// 植物特定的同步hook
-export function usePlantSync(plantId?: string) {
-  const [isSyncing, setIsSyncing] = useState(false)
-  const [error, setError] = useState<string>()
-  const { isOnline } = useAppStore()
-
-  const syncPlant = useCallback(async () => {
-    if (!plantId || !isOnline || isSyncing) {
-      return null
-    }
-
-    setIsSyncing(true)
-    setError(undefined)
-
-    try {
-      const result = await syncService.syncSinglePlant(plantId)
-      setIsSyncing(false)
-      return result
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      setError(errorMessage)
-      setIsSyncing(false)
-      return null
-    }
-  }, [plantId, isOnline, isSyncing])
-
-  // 获取植物并确保同步
-  const getPlantWithSync = useCallback(async () => {
-    if (!plantId || !isOnline) {
-      return null
-    }
-
-    return await syncService.getCurrentPlantWithSync()
-  }, [plantId, isOnline])
-
-  return {
-    isSyncing,
-    error,
-    syncPlant,
-    getPlantWithSync
+    startWateringSync,
+    retryFailedSyncs
   }
 }
 
@@ -222,31 +160,81 @@ export function usePlantSync(plantId?: string) {
 export function useWateringRecordSync(recordId?: string) {
   const [isSyncing, setIsSyncing] = useState(false)
   const [error, setError] = useState<string>()
-  const { isOnline } = useAppStore()
+  const { isOnline, getSyncStatus } = useAppStore()
 
-  const syncRecord = useCallback(async () => {
-    if (!recordId || !isOnline || isSyncing) {
-      return null
+  // 获取同步状态
+  const syncStatus = useMemo(() => {
+    if (!recordId) return null
+    return getSyncStatus(recordId, 'watering')
+  }, [recordId, getSyncStatus])
+
+  // 启动同步
+  const startSync = useCallback(() => {
+    if (!recordId || !isOnline) {
+      return
     }
 
-    setIsSyncing(true)
-    setError(undefined)
+    startWateringRecordSync(recordId)
+  }, [recordId, isOnline])
 
-    try {
-      const result = await syncService.syncSingleWateringRecord(recordId)
-      setIsSyncing(false)
-      return result
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      setError(errorMessage)
-      setIsSyncing(false)
-      return null
+  // 监听同步状态变化
+  useEffect(() => {
+    if (syncStatus) {
+      setIsSyncing(syncStatus.isSyncing)
+      setError(syncStatus.error)
     }
-  }, [recordId, isOnline, isSyncing])
+  }, [syncStatus])
 
   return {
     isSyncing,
     error,
-    syncRecord
+    isComplete: syncStatus?.isComplete || false,
+    isFailed: syncStatus?.isFailed || false,
+    retryCount: syncStatus?.retryCount || 0,
+    maxRetries: syncStatus?.maxRetries || 10,
+    startSync
+  }
+}
+
+// 植物特定的同步hook
+export function usePlantSync(plantId?: string) {
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [error, setError] = useState<string>()
+  const { isOnline, getSyncStatus } = useAppStore()
+
+  // 获取同步状态
+  const syncStatus = useMemo(() => {
+    if (!plantId) return null
+    return getSyncStatus(plantId, 'plant')
+  }, [plantId, getSyncStatus])
+
+  // 启动同步
+  const startSync = useCallback(async () => {
+    if (!plantId || !isOnline) {
+      return null
+    }
+
+    try {
+      return await syncService.syncSinglePlant(plantId)
+    } catch (error) {
+      console.error(`植物同步失败: ${plantId}`, error)
+      return null
+    }
+  }, [plantId, isOnline])
+
+  // 监听同步状态变化
+  useEffect(() => {
+    if (syncStatus) {
+      setIsSyncing(syncStatus.isSyncing)
+      setError(syncStatus.error)
+    }
+  }, [syncStatus])
+
+  return {
+    isSyncing,
+    error,
+    isComplete: syncStatus?.isComplete || false,
+    isFailed: syncStatus?.isFailed || false,
+    startSync
   }
 }

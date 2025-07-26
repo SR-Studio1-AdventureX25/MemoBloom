@@ -7,20 +7,20 @@ interface SyncStatusIndicatorProps {
 }
 
 export default function SyncStatusIndicator({ className }: SyncStatusIndicatorProps) {
-  const { syncState, triggerSync } = useSmartSync()
+  const { syncState, retryFailedSyncs } = useSmartSync()
   const { isOnline } = useAppStore()
 
   // 不在线时不显示
   if (!isOnline) {
-    return (
-      <div className={cn('flex items-center gap-2 px-3 py-1 rounded-full bg-red-100 text-red-700 text-sm', className)}>
-        <div className="w-2 h-2 rounded-full bg-red-500" />
-        <span>离线模式</span>
-      </div>
-    )
+    return null
   }
 
-  // 同步中
+  // 只有当存在失败的同步记录时才显示指示器
+  if (syncState.failedCount === 0) {
+    return null
+  }
+
+  // 同步中状态
   if (syncState.isSyncing) {
     return (
       <div className={cn('flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm', className)}>
@@ -30,45 +30,32 @@ export default function SyncStatusIndicator({ className }: SyncStatusIndicatorPr
     )
   }
 
-  // 同步错误
-  if (syncState.error) {
-    return (
-      <button 
-        onClick={triggerSync}
-        className={cn('flex items-center gap-2 px-3 py-1 rounded-full bg-orange-100 text-orange-700 text-sm hover:bg-orange-200 transition-colors', className)}
-      >
-        <div className="w-2 h-2 rounded-full bg-orange-500" />
-        <span>同步失败，点击重试</span>
-      </button>
-    )
-  }
-
-  // 显示上次同步时间和结果
-  const getLastSyncText = () => {
-    if (syncState.lastSyncTime === 0) {
-      return '暂未同步'
-    }
-    
-    const minutesAgo = Math.floor((Date.now() - syncState.lastSyncTime) / (1000 * 60))
-    const timeText = minutesAgo === 0 ? '刚刚同步' : `${minutesAgo}分钟前同步`
-    
-    // 如果有同步结果，显示更新数量
-    if (syncState.plantsUpdated > 0 || syncState.recordsUpdated > 0) {
-      const updateText = `(更新${syncState.plantsUpdated + syncState.recordsUpdated}项)`
-      return `${timeText} ${updateText}`
-    }
-    
-    return timeText
-  }
-
+  // 显示失败的同步记录数量，点击可重试
   return (
     <button 
-      onClick={triggerSync}
-      className={cn('flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm hover:bg-green-200 transition-all duration-200', className)}
-      title="点击手动同步"
+      onClick={retryFailedSyncs}
+      className={cn(
+        'flex items-center gap-2 px-3 py-1 rounded-full bg-orange-100 text-orange-700 text-sm hover:bg-orange-200 transition-colors',
+        'focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2',
+        className
+      )}
+      title={`${syncState.failedCount} 个记录同步失败，点击重试`}
     >
-      <div className="w-2 h-2 rounded-full bg-green-500" />
-      <span>{getLastSyncText()}</span>
+      <div className="w-2 h-2 rounded-full bg-orange-500" />
+      <span>{syncState.failedCount} 个记录同步失败</span>
+      <svg 
+        className="w-3 h-3 ml-1" 
+        fill="none" 
+        stroke="currentColor" 
+        viewBox="0 0 24 24"
+      >
+        <path 
+          strokeLinecap="round" 
+          strokeLinejoin="round" 
+          strokeWidth={2} 
+          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" 
+        />
+      </svg>
     </button>
   )
 }

@@ -56,32 +56,23 @@ export const useAppStore = create<AppStore>()(
         addWateringRecord: (record: WateringRecord) => set((state) => {
           const now = Date.now()
           
-          // 更新浇水记录的同步状态，设置 lastModified
+          // 初始化浇水记录的同步状态
           const newWateringRecordSyncStatus = {
             ...state.wateringRecordSyncStatus,
             [record.id]: {
-              ...state.wateringRecordSyncStatus[record.id],
-              lastModified: now,
-              forceExpireUntil: now + 60 * 1000, // 60秒强制过期
-              isComplete: false // 新记录需要同步
-            }
-          }
-          
-          // 更新关联植物的同步状态，设置 lastModified
-          const newPlantSyncStatus = {
-            ...state.plantSyncStatus,
-            [record.plantId]: {
-              ...state.plantSyncStatus[record.plantId],
-              lastModified: now,
-              forceExpireUntil: now + 60 * 1000, // 60秒强制过期
-              isComplete: false // 植物状态可能需要更新
+              lastSync: 0,
+              isComplete: false,
+              isSyncing: false,
+              retryCount: 0,
+              maxRetries: 10,
+              isFailed: false,
+              lastModified: now
             }
           }
           
           return {
             wateringRecords: [...state.wateringRecords, record],
-            wateringRecordSyncStatus: newWateringRecordSyncStatus,
-            plantSyncStatus: newPlantSyncStatus
+            wateringRecordSyncStatus: newWateringRecordSyncStatus
           }
         }),
 
