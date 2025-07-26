@@ -15,7 +15,9 @@ export default function DebugPage() {
   const [pwaStatus, setPwaStatus] = useState({
     isPWAMode: false,
     canInstall: false,
-    hasPrompt: false
+    hasPrompt: false,
+    isMobilePWA: false,
+    notificationMethod: 'unknown'
   })
   const [serviceWorkerStatus, setServiceWorkerStatus] = useState<string>('checking...')
   
@@ -45,6 +47,7 @@ export default function DebugPage() {
     const status = pwaService.getInstallStatus()
     setPwaStatus(status)
     addLog('info', `PWA模式: ${status.isPWAMode}, 可安装: ${status.canInstall}`)
+    addLog('info', `移动PWA: ${status.isMobilePWA}, 通知方法: ${status.notificationMethod}`)
     
     // 检查Service Worker状态
     if ('serviceWorker' in navigator) {
@@ -198,6 +201,8 @@ export default function DebugPage() {
                 <div>Service Worker: <span className="text-blue-600">{serviceWorkerStatus}</span></div>
                 <div>网络状态: <span className={isOnline ? 'text-green-600' : 'text-red-600'}>{isOnline ? '在线' : '离线'}</span></div>
                 <div>PWA模式: <span className={pwaStatus.isPWAMode ? 'text-green-600' : 'text-gray-600'}>{pwaStatus.isPWAMode ? '是' : '否'}</span></div>
+                <div>移动PWA: <span className={pwaStatus.isMobilePWA ? 'text-orange-600' : 'text-gray-600'}>{pwaStatus.isMobilePWA ? '是' : '否'}</span></div>
+                <div>通知方法: <span className="text-purple-600">{pwaStatus.notificationMethod}</span></div>
               </div>
             </div>
             

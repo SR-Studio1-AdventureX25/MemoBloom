@@ -158,14 +158,74 @@ export class PWAService {
     })
   }
 
-  // 发送本地推送通知
+  // 检测是否为移动端PWA环境
+  private isPWAMobile(): boolean {
+    // 检查是否在PWA模式下运行
+    const isPWA = this.isPWAMode()
+    
+    // 检查是否为安卓PWA（安卓PWA有特殊的通知限制）
+    const isAndroidPWA = isPWA && /Android/i.test(navigator.userAgent)
+    
+    return isAndroidPWA
+  }
+
+  // 通过Service Worker发送通知
+  private async sendNotificationViaServiceWorker(title: string, options?: NotificationOptions) {
+    if (!this.registration) {
+      throw new Error('Service Worker not registered')
+    }
+
+    // 使用Service Worker的showNotification方法
+    await this.registration.showNotification(title, {
+      icon: '/pwa-192x192.png',
+      badge: '/pwa-192x192.png',
+      ...options
+    })
+  }
+
+  // 发送本地推送通知（改进版，支持安卓PWA）
   async sendLocalNotification(title: string, options?: NotificationOptions) {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(title, {
-        icon: '/pwa-192x192.png',
-        badge: '/pwa-192x192.png',
-        ...options
-      })
+    if (!('Notification' in window)) {
+      throw new Error('Notifications are not supported in this browser')
+    }
+
+    if (Notification.permission !== 'granted') {
+      throw new Error('Notification permission not granted')
+    }
+
+    try {
+      // 检测环境并选择合适的通知方法
+      if (this.isPWAMobile()) {
+        // 安卓PWA环境：必须使用Service Worker
+        console.log('Using Service Worker notification for mobile PWA')
+        await this.sendNotificationViaServiceWorker(title, options)
+      } else {
+        // 桌面或其他环境：使用标准Notification API
+        console.log('Using standard Notification API')
+        new Notification(title, {
+          icon: '/pwa-192x192.png',
+          badge: '/pwa-192x192.png',
+          ...options
+        })
+      }
+    } catch (error) {
+      console.error('Failed to send notification:', error)
+      
+      // 如果Service Worker方法失败，尝试降级到标准方法（仅在非安卓PWA环境）
+      if (this.isPWAMobile()) {
+        throw new Error(`Mobile PWA notification failed: ${error}`)
+      } else {
+        try {
+          console.log('Fallback to standard Notification API')
+          new Notification(title, {
+            icon: '/pwa-192x192.png',
+            badge: '/pwa-192x192.png',
+            ...options
+          })
+        } catch (fallbackError) {
+          throw new Error(`All notification methods failed: ${fallbackError}`)
+        }
+      }
     }
   }
 
@@ -429,7 +489,9 @@ export class PWAService {
     return {
       isPWAMode: this.isPWAMode(),
       canInstall: this.canInstallPWA(),
-      hasPrompt: this.deferredPrompt !== null
+      hasPrompt: this.deferredPrompt !== null,
+      isMobilePWA: this.isPWAMobile(),
+      notificationMethod: this.isPWAMobile() ? 'ServiceWorker' : 'Standard'
     }
   }
 }
