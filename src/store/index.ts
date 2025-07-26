@@ -190,64 +190,131 @@ export const useAppStore = create<AppStore>()(
           const state = get()
           const { currentPlantId, plants, wateringRecords, dailyBloomDraws } = state
           
+          console.log('🔍 checkCanDrawMemory Debug:')
+          console.log('- currentPlantId:', currentPlantId)
+          console.log('- plants:', plants)
+          console.log('- wateringRecords:', wateringRecords)
+          console.log('- dailyBloomDraws:', dailyBloomDraws)
+          
           // 检查当前植物是否存在且处于开花状态
           const currentPlant = currentPlantId ? plants.find(p => p.id === currentPlantId) : null
+          console.log('- currentPlant:', currentPlant)
+          console.log('- plant growth stage:', currentPlant?.currentGrowthStage)
+          
           if (!currentPlant || currentPlant.currentGrowthStage !== 'flowering') {
+            console.log('- checkCanDrawMemory: false (no plant or not flowering)')
             return false
           }
           
           // 检查今日是否已浇水
           const today = new Date().toDateString()
-          const todayWateringRecords = wateringRecords.filter(record => 
-            record.plantId === currentPlantId && 
-            new Date(record.wateringTime).toDateString() === today
-          )
+          console.log('- today:', today)
+          
+          const todayWateringRecords = wateringRecords.filter(record => {
+            const recordDate = new Date(record.wateringTime).toDateString()
+            const isMatch = record.plantId === currentPlantId && recordDate === today
+            console.log(`  - checking record ${record.id}: plantId=${record.plantId}, date=${recordDate}, isMatch=${isMatch}`)
+            return isMatch
+          })
+          
+          console.log('- todayWateringRecords:', todayWateringRecords)
           
           if (todayWateringRecords.length === 0) {
+            console.log('- checkCanDrawMemory: false (no watering today)')
             return false
           }
           
           // 检查今日抽取次数是否小于3
           const todayDrawCount = dailyBloomDraws[today] || 0
-          return todayDrawCount < 3
+          console.log('- todayDrawCount:', todayDrawCount)
+          
+          const canDraw = todayDrawCount < 3
+          console.log('- checkCanDrawMemory result:', canDraw)
+          return canDraw
         },
 
         getTodayDrawCount: (): number => {
           const state = get()
           const today = new Date().toDateString()
-          return state.dailyBloomDraws[today] || 0
+          const count = state.dailyBloomDraws[today] || 0
+          console.log('📊 getTodayDrawCount Debug:')
+          console.log('- today:', today)
+          console.log('- dailyBloomDraws:', state.dailyBloomDraws)
+          console.log('- count for today:', count)
+          return count
         },
 
         performMemoryDraw: (): WateringRecord | null => {
           const state = get()
           const { currentPlantId, wateringRecords, dailyBloomDraws } = state
           
-          if (!currentPlantId) return null
+          console.log('🎯 performMemoryDraw Debug:')
+          console.log('- currentPlantId:', currentPlantId)
+          console.log('- wateringRecords count:', wateringRecords.length)
+          console.log('- all wateringRecords:', wateringRecords)
+          
+          if (!currentPlantId) {
+            console.log('- performMemoryDraw: null (no currentPlantId)')
+            return null
+          }
           
           // 获取历史浇水记录（排除今日记录）
           const today = new Date().toDateString()
-          const historicalRecords = wateringRecords.filter(record => 
-            record.plantId === currentPlantId && 
-            new Date(record.wateringTime).toDateString() !== today &&
-            record.memoryText && // 确保有记忆内容
-            record.emotionTags && record.emotionTags.length > 0 // 确保有情感标签
-          )
+          console.log('- today:', today)
           
-          if (historicalRecords.length === 0) return null
+          // 第一步：筛选当前植物的记录
+          const plantRecords = wateringRecords.filter(record => record.plantId === currentPlantId)
+          console.log('- plantRecords:', plantRecords.length, plantRecords)
+          
+          // 第二步：排除今日记录
+          const nonTodayRecords = plantRecords.filter(record => {
+            const recordDate = new Date(record.wateringTime).toDateString()
+            const isNotToday = recordDate !== today
+            console.log(`  - record ${record.id}: date=${recordDate}, isNotToday=${isNotToday}`)
+            return isNotToday
+          })
+          console.log('- nonTodayRecords:', nonTodayRecords.length, nonTodayRecords)
+          
+          // 第三步：确保有记忆内容和情感标签
+          const historicalRecords = nonTodayRecords.filter(record => {
+            const hasMemoryText = !!record.memoryText
+            const hasEmotionTags = !!(record.emotionTags && record.emotionTags.length > 0)
+            console.log(`  - record ${record.id}: hasMemoryText=${hasMemoryText}, hasEmotionTags=${hasEmotionTags}`)
+            console.log(`    - memoryText:`, record.memoryText)
+            console.log(`    - emotionTags:`, record.emotionTags)
+            return hasMemoryText && hasEmotionTags
+          })
+          
+          console.log('- historicalRecords:', historicalRecords.length, historicalRecords)
+          
+          if (historicalRecords.length === 0) {
+            console.log('- performMemoryDraw: null (no historical records)')
+            return null
+          }
           
           // 按情感强度加权随机选择
-          const weightedRecords = historicalRecords.map(record => ({
-            record,
-            weight: (record.emotionIntensity || 1) * Math.random()
-          }))
+          const weightedRecords = historicalRecords.map(record => {
+            const weight = (record.emotionIntensity || 1) * Math.random()
+            console.log(`  - record ${record.id}: emotionIntensity=${record.emotionIntensity}, weight=${weight}`)
+            return {
+              record,
+              weight
+            }
+          })
+          
+          console.log('- weightedRecords:', weightedRecords)
           
           // 选择权重最高的记录
           const selectedRecord = weightedRecords.reduce((prev, current) => 
             current.weight > prev.weight ? current : prev
           ).record
           
+          console.log('- selectedRecord:', selectedRecord)
+          
           // 更新抽取次数
           const newDrawCount = (dailyBloomDraws[today] || 0) + 1
+          console.log('- updating draw count from', dailyBloomDraws[today] || 0, 'to', newDrawCount)
+          
           set((state) => ({
             dailyBloomDraws: {
               ...state.dailyBloomDraws,
@@ -256,6 +323,7 @@ export const useAppStore = create<AppStore>()(
             lastDrawDate: today
           }))
           
+          console.log('- performMemoryDraw result:', selectedRecord)
           return selectedRecord
         },
 
