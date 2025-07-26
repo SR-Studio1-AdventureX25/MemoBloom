@@ -2,8 +2,9 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import HomePage from '@/pages/HomePage'
 import DigitalLibraryPage from '@/pages/DigitalLibrary'
 import WalletPage from '@/pages/WalletPage'
+import DashboardPage from '@/pages/DashboardPage'
 
-type CurrentPage = 'home' | 'library' | 'wallet'
+type CurrentPage = 'dashboard' | 'home' | 'library' | 'wallet'
 
 interface TouchInfo {
   startY: number
@@ -17,7 +18,7 @@ interface PageContainerProps {
 
 const PageContainer = ({ onRecordingStateChange }: PageContainerProps) => {
   const [currentPage, setCurrentPage] = useState<CurrentPage>('home')
-  const [animationProgress, setAnimationProgress] = useState(0) // 0-2, 0是home，1是library，2是wallet
+  const [animationProgress, setAnimationProgress] = useState(0) // -1到2, -1是dashboard，0是home，1是library，2是wallet
   const [isAnimating, setIsAnimating] = useState(false)
   
   const containerRef = useRef<HTMLDivElement>(null)
@@ -64,8 +65,10 @@ const PageContainer = ({ onRecordingStateChange }: PageContainerProps) => {
           setCurrentPage('wallet')
         } else if (targetProgress >= 0.5) {
           setCurrentPage('library')
-        } else {
+        } else if (targetProgress >= -0.5) {
           setCurrentPage('home')
+        } else {
+          setCurrentPage('dashboard')
         }
       }
     }
@@ -121,8 +124,10 @@ const PageContainer = ({ onRecordingStateChange }: PageContainerProps) => {
     let progress = deltaY / maxDelta
     
     // 限制拖拽范围
-    if (currentPage === 'home') {
-      progress = Math.max(0, Math.min(1, progress))
+    if (currentPage === 'dashboard') {
+      progress = Math.max(-1, Math.min(0, -1 + progress)) // dashboard页面上滑时progress从-1增加到0
+    } else if (currentPage === 'home') {
+      progress = Math.max(-1, Math.min(1, progress)) // home页面可以上滑到library或下滑到dashboard
     } else if (currentPage === 'library') {
       progress = Math.max(0, Math.min(2, 1 + progress)) // library页面可以上滑到wallet或下滑到home
     } else if (currentPage === 'wallet') {
@@ -148,10 +153,18 @@ const PageContainer = ({ onRecordingStateChange }: PageContainerProps) => {
     // 判断是否触发页面切换
     const shouldSwitch = Math.abs(deltaY) > SWIPE_THRESHOLD || velocity > VELOCITY_THRESHOLD
 
-    if (currentPage === 'home' && deltaY > 0 && shouldSwitch) {
+    if (currentPage === 'dashboard' && deltaY > 0 && shouldSwitch) {
+      // 上滑切换到home
+      setCurrentPage('home')
+      startAnimation(0)
+    } else if (currentPage === 'home' && deltaY > 0 && shouldSwitch) {
       // 上滑切换到library
       setCurrentPage('library')
       startAnimation(1)
+    } else if (currentPage === 'home' && deltaY < 0 && shouldSwitch) {
+      // 下滑切换到dashboard
+      setCurrentPage('dashboard')
+      startAnimation(-1)
     } else if (currentPage === 'library' && deltaY > 0 && shouldSwitch) {
       // 上滑切换到wallet
       setCurrentPage('wallet')
@@ -166,7 +179,7 @@ const PageContainer = ({ onRecordingStateChange }: PageContainerProps) => {
       startAnimation(1)
     } else {
       // 回弹到当前页面
-      const targetProgress = currentPage === 'home' ? 0 : currentPage === 'library' ? 1 : 2
+      const targetProgress = currentPage === 'dashboard' ? -1 : currentPage === 'home' ? 0 : currentPage === 'library' ? 1 : 2
       startAnimation(targetProgress, ANIMATION_DURATION / 2)
     }
 
@@ -205,8 +218,11 @@ const PageContainer = ({ onRecordingStateChange }: PageContainerProps) => {
 
       // 根据当前页面和滚动方向决定切换
       if (isScrollingDown) {
-        // 向下滚轮：home → library → wallet
-        if (currentPage === 'home') {
+        // 向下滚轮：dashboard → home → library → wallet
+        if (currentPage === 'dashboard') {
+          setCurrentPage('home')
+          startAnimation(0)
+        } else if (currentPage === 'home') {
           setCurrentPage('library')
           startAnimation(1)
         } else if (currentPage === 'library') {
@@ -214,13 +230,16 @@ const PageContainer = ({ onRecordingStateChange }: PageContainerProps) => {
           startAnimation(2)
         }
       } else {
-        // 向上滚轮：wallet → library → home
+        // 向上滚轮：wallet → library → home → dashboard
         if (currentPage === 'wallet') {
           setCurrentPage('library')
           startAnimation(1)
         } else if (currentPage === 'library') {
           setCurrentPage('home')
           startAnimation(0)
+        } else if (currentPage === 'home') {
+          setCurrentPage('dashboard')
+          startAnimation(-1)
         }
       }
 
@@ -271,6 +290,35 @@ const PageContainer = ({ onRecordingStateChange }: PageContainerProps) => {
   }, [])
 
   // 使用useMemo缓存样式计算
+  const dashboardStyle = useMemo(() => {
+    const progress = animationProgress
+    const translateY = (-1 - progress) * 100 // Dashboard在Home下方
+    const translateZ = (-1 - progress) * -200
+    const rotateX = (-1 - progress) * 25
+    // 保持scale效果，用于外部滚动和触控监听
+    const scale = 0.85 + (progress + 1) * 0.15
+    // 修正opacity计算：当progress为-1时，opacity应该为1
+    const opacity = Math.abs(progress + 1) < 0.001 ? 1 : (progress + 1) * 0.9 + 0.1
+    
+    // 简化阴影计算
+    const shadowOpacity = Math.abs(progress + 1) < 0.001 ? 0.3 : (progress + 1) * 0.4
+    const shadowBlur = 30 + (-1 - progress) * 10
+    const shadowOffset = (-1 - progress) * 8
+    
+    // 计算圆角 - 当progress为-1时无圆角，非-1时有固定圆角
+    // const isInteger = Math.abs(progress - Math.round(progress)) < 0.001
+    // const borderRadius = isInteger ? '0' : '0.75rem' // 0或rounded-xl (0.75rem)
+    
+    return {
+      transform: `translate3d(0, ${translateY}%, ${translateZ}px) rotateX(${rotateX}deg) scale(${scale})`,
+      opacity: Math.max(0, opacity),
+      zIndex: progress > -0.5 ? 1 : 2,
+      boxShadow: `0 ${shadowOffset}px ${shadowBlur}px rgba(0, 0, 0, ${shadowOpacity})`,
+      filter: `brightness(${Math.abs(progress + 1) < 0.001 ? 1 : 0.8 + (progress + 1) * 0.2})`,
+      backfaceVisibility: 'hidden' as const,
+    }
+  }, [animationProgress])
+
   const homeStyle = useMemo(() => {
     const progress = animationProgress
     const translateY = progress * -100
@@ -375,6 +423,53 @@ const PageContainer = ({ onRecordingStateChange }: PageContainerProps) => {
         className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-gray-200/40 pointer-events-none"
         style={backgroundStyle}
       />
+      
+      {/* Dashboard页面 */}
+      <div
+        className="absolute inset-0 will-change-transform overflow-hidden rounded-xl"
+        style={{
+          ...dashboardStyle,
+          transition: isAnimating ? 'none' : 'all 0.3s ease-out',
+          transformStyle: 'preserve-3d'
+        }}
+      >
+        {/* 页面厚度效果 - 顶面 */}
+        <div 
+          className="absolute inset-0 bg-gradient-to-b from-blue-300/10 to-transparent pointer-events-none"
+          style={{
+            transform: 'translateZ(8px)',
+            borderRadius: 'inherit'
+          }}
+        />
+        {/* 页面厚度效果 - 侧面 */}
+        <div 
+          className="absolute inset-0 bg-gradient-to-r from-blue-900/30 to-blue-800/20 pointer-events-none"
+          style={{
+            transform: 'rotateX(90deg) translateZ(4px)',
+            transformOrigin: 'bottom',
+            height: '8px',
+            bottom: 0
+          }}
+        />
+        
+        <div className="relative w-full h-full overflow-hidden border border-blue-400/20"
+             style={{ borderRadius: 'inherit' }}>
+          <DashboardPage />
+        </div>
+        
+        {/* Dashboard页面遮罩，增强层次感 */}
+        {animationProgress < 0 && (
+          <div 
+            className="absolute inset-0 bg-black pointer-events-none"
+            style={{ 
+              opacity: (1 + animationProgress) * 0.3,
+              zIndex: -1,
+              borderRadius: 'inherit'
+            }}
+          />
+        )}
+      </div>
+
       {/* Home页面 */}
       <div
         className="absolute inset-0 will-change-transform overflow-hidden"
@@ -505,9 +600,16 @@ const PageContainer = ({ onRecordingStateChange }: PageContainerProps) => {
       <div 
         className="absolute right-3 top-1/2 transform -translate-y-1/2 flex flex-col space-y-2 z-50 transition-opacity duration-300"
         style={{ 
-          opacity: (animationProgress === 0 || animationProgress === 1 || animationProgress === 2) ? 1 : 0 
+          opacity: (animationProgress === -1 || animationProgress === 0 || animationProgress === 1 || animationProgress === 2) ? 1 : 0 
         }}
       >
+        <div 
+          className={`w-1 h-1 rounded-full transition-all duration-500 ${
+            currentPage === 'dashboard' 
+              ? 'bg-white/80' 
+              : 'bg-white/20'
+          }`} 
+        />
         <div 
           className={`w-1 h-1 rounded-full transition-all duration-500 ${
             currentPage === 'home' 
