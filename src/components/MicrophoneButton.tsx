@@ -5,7 +5,7 @@ import { speechRecognitionService } from '@/services/speechRecognition'
 import { aiAnalysisService } from '@/services/aiAnalysis'
 import { apiService } from '@/services/api'
 import { markPlantAndRecordsModified } from '@/services/syncService'
-import type { OfflineWateringItem, WateringRecord } from '@/types'
+import type { WateringRecord } from '@/types'
 
 interface MicrophoneButtonProps {
   plantId: string
@@ -20,7 +20,7 @@ export default function MicrophoneButton({
   onWateringComplete,
   onRecordingStateChange
 }: MicrophoneButtonProps) {
-  const { isOnline, addToOfflineQueue, addNotification } = useAppStore()
+  const { isOnline, addNotification } = useAppStore()
   const [isRecording, setIsRecording] = useState(false)
   const [recordingDuration, setRecordingDuration] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
@@ -206,92 +206,25 @@ export default function MicrophoneButton({
 
           onWateringComplete(true, analysisMessage, emotionResult)
         } catch (error) {
-          console.error('在线浇水失败:', error)
+          console.error('浇水失败:', error)
           
-          // 在线失败，创建临时本地记录并添加到离线队列
-          const tempRecordId = `offline_${Date.now()}`
-          
-          const localRecord: WateringRecord = {
-            id: tempRecordId,
-            plantId,
-            plantGrowthValue: currentGrowthValue,
-            memoryText: recognizedText || '语音识别失败',
-            emotionTags: [emotionResult],
-            emotionIntensity: emotionResult === 'happy' ? 0.8 : 0.6,
-            growthIncrement: 5,
-            coreEvent: analysisMessage,
-            nftMinted: false,
-            wateringTime
-          }
-
-          addWateringRecord(localRecord)
-          
-          await addToOfflineQueue({
-            id: tempRecordId,
-            plantId,
-            plantGrowthValue: currentGrowthValue,
-            audioBlob,
-            wateringTime,
-            retryCount: 0,
-            createdAt: new Date()
-          })
-
-          console.log('浇水记录已保存到本地store（离线队列）:', tempRecordId)
-
-          // 标记植物和浇水记录已修改，触发智能同步
-          markPlantAndRecordsModified(plantId, tempRecordId)
-
           addNotification({
-            title: '已保存到离线队列',
-            message: '网络异常，浇水记录将在联网后上传',
-            type: 'warning',
+            title: '浇水失败',
+            message: '网络异常，请稍后重试',
+            type: 'error',
             read: false
           })
-          onWateringComplete(true, '浇水已保存，将在联网后同步', emotionResult)
+          onWateringComplete(false, '网络异常，请稍后重试')
         }
       } else {
-        // 离线模式，创建本地记录并添加到队列
-        const tempRecordId = `offline_${Date.now()}`
-        
-        const localRecord: WateringRecord = {
-          id: tempRecordId,
-          plantId,
-          plantGrowthValue: currentGrowthValue,
-          memoryText: recognizedText || '语音识别失败',
-          emotionTags: [emotionResult],
-          emotionIntensity: emotionResult === 'happy' ? 0.8 : 0.6,
-          growthIncrement: 5,
-          coreEvent: analysisMessage,
-          nftMinted: false,
-          wateringTime
-        }
-
-        addWateringRecord(localRecord)
-
-        const offlineItem: OfflineWateringItem = {
-          id: tempRecordId,
-          plantId,
-          plantGrowthValue: currentGrowthValue,
-          audioBlob,
-          wateringTime,
-          retryCount: 0,
-          createdAt: new Date()
-        }
-
-        addToOfflineQueue(offlineItem)
-        
-        console.log('浇水记录已保存到本地store（离线模式）:', tempRecordId)
-        
-        // 标记植物和浇水记录已修改，触发智能同步
-        markPlantAndRecordsModified(plantId, tempRecordId)
-        
+        // 离线模式，显示错误提示
         addNotification({
-          title: '离线浇水成功',
-          message: '浇水记录已保存，将在联网后同步',
-          type: 'info',
+          title: '网络离线',
+          message: '请连接网络后再进行浇水',
+          type: 'warning',
           read: false
         })
-        onWateringComplete(true, '离线浇水成功，记录已保存', emotionResult)
+        onWateringComplete(false, '请连接网络后再进行浇水')
       }
     } catch (error) {
       console.error('浇水提交失败:', error)
@@ -305,7 +238,7 @@ export default function MicrophoneButton({
     } finally {
       setIsProcessing(false)
     }
-  }, [isOnline, plantId, currentGrowthValue, addToOfflineQueue, addNotification, onWateringComplete])
+  }, [isOnline, plantId, currentGrowthValue, addNotification, onWateringComplete])
 
   // 停止录音
   const stopRecording = useCallback(async () => {
@@ -558,9 +491,9 @@ export default function MicrophoneButton({
       {/* 离线提示 */}
       {!isOnline && (
         <div className="mt-2 flex items-center space-x-2">
-          <div className="w-2 h-2 bg-yellow-400 rounded-full" />
-          <span className="text-yellow-300 text-xs">
-            离线模式，记录将在联网后同步
+          <div className="w-2 h-2 bg-red-400 rounded-full" />
+          <span className="text-red-300 text-xs">
+            网络离线，无法进行浇水
           </span>
         </div>
       )}

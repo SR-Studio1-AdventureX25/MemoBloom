@@ -1,5 +1,5 @@
 import type { Plant } from './plant'
-import type { WateringRecord, OfflineWateringItem } from './watering'
+import type { WateringRecord } from './watering'
 
 // 同步状态类型
 export interface SyncStatus {
@@ -19,7 +19,6 @@ export interface AppState {
   plants: Plant[]                 // 植物列表
   currentPlantId: string | null   // 当前植物ID
   wateringRecords: WateringRecord[] // 浇水记录
-  offlineWateringQueue: OfflineWateringItem[] // 离线浇水队列
   isOnline: boolean               // 在线状态
   notifications: Array<{
     id: string

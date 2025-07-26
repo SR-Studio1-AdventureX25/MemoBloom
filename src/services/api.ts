@@ -359,29 +359,6 @@ export const apiService = {
     }
   },
 
-  // 同步相关（保留原有接口）
-  sync: {
-    // 上传离线数据
-    uploadOfflineData: async (data: WaterPlantRequest[]): Promise<{ data: { success: boolean; results: WaterPlantResponse[] } }> => {
-      const results: WaterPlantResponse[] = []
-      
-      for (const item of data) {
-        try {
-          const response = await apiService.watering.water(item)
-          results.push(response.data)
-        } catch (error) {
-          console.warn('上传离线数据失败:', error)
-        }
-      }
-      
-      return {
-        data: {
-          success: results.length > 0,
-          results
-        }
-      }
-    }
-  }
 }
 
 export default api

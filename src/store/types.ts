@@ -2,7 +2,6 @@ import type {
   AppState, 
   Plant, 
   WateringRecord, 
-  OfflineWateringItem,
   SyncStatus
 } from '@/types'
 
@@ -20,11 +19,6 @@ export interface AppActions {
   addWateringRecord: (record: WateringRecord) => void
   updateWateringRecord: (id: string, updates: Partial<WateringRecord>) => void
   
-  // 离线队列相关
-  addToOfflineQueue: (item: OfflineWateringItem) => void
-  removeFromOfflineQueue: (id: string) => void
-  updateOfflineQueueItem: (id: string, updates: Partial<OfflineWateringItem>) => void
-  clearOfflineQueue: () => void
   
   // 网络状态
   setOnlineStatus: (status: boolean) => void

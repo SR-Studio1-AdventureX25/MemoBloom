@@ -29,14 +29,3 @@ export interface WaterPlantResponse {
   recordId: string                // 浇水记录ID
   wateringTime: string            // 浇水时间
 }
-
-// 离线浇水队列项类型
-export interface OfflineWateringItem {
-  id: string                      // 本地ID
-  plantId: string                 // 植物ID
-  plantGrowthValue: number        // 植物成长值
-  audioBlob: Blob                 // 音频文件
-  wateringTime: string            // 浇水时间
-  retryCount: number              // 重试次数
-  createdAt: Date                 // 创建时间
-}

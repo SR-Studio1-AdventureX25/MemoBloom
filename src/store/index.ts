@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
-import type { AppState, Plant, WateringRecord, OfflineWateringItem, SyncStatus } from '@/types'
+import type { AppState, Plant, WateringRecord, SyncStatus } from '@/types'
 import type { AppStore } from './types'
 import { apiService } from '@/services/api'
 import { pwaService } from '@/services/pwa'
@@ -16,7 +16,6 @@ export const useAppStore = create<AppStore>()(
         plants: [] as Plant[],
         currentPlantId: null,
         wateringRecords: [] as WateringRecord[],
-        offlineWateringQueue: [] as OfflineWateringItem[],
         isOnline: true,
         notifications: [] as AppState['notifications'],
         videoPlaylist: ['plant-sprout-normal', 'plant-sprout-normal'], // 默认sprout阶段循环播放normal
@@ -89,22 +88,6 @@ export const useAppStore = create<AppStore>()(
           )
         })),
 
-        // Actions - 离线队列相关
-        addToOfflineQueue: (item: OfflineWateringItem) => set((state) => ({
-          offlineWateringQueue: [...state.offlineWateringQueue, item]
-        })),
-
-        removeFromOfflineQueue: (id: string) => set((state) => ({
-          offlineWateringQueue: state.offlineWateringQueue.filter(item => item.id !== id)
-        })),
-
-        updateOfflineQueueItem: (id: string, updates: Partial<OfflineWateringItem>) => set((state) => ({
-          offlineWateringQueue: state.offlineWateringQueue.map(item =>
-            item.id === id ? { ...item, ...updates } : item
-          )
-        })),
-
-        clearOfflineQueue: () => set({ offlineWateringQueue: [] }),
 
         // Actions - 网络状态
         setOnlineStatus: (status: boolean) => set({ isOnline: status }),
