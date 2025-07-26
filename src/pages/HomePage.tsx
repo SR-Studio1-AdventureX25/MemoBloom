@@ -165,7 +165,7 @@ interface HomePageProps {
 }
 
 export default function HomePage({ onRecordingStateChange }: HomePageProps = {}) {
-  const { plants, currentPlantId, isOnline, addNotification, addFavoritePlant } = useAppStore()
+  const { plants, currentPlantId, isOnline, addNotification, addFavoritePlant, favoritePlants } = useAppStore()
   const [isLoading, setIsLoading] = useState(true)
   const [isRecording, setIsRecording] = useState(false)
   const [aiMessage, setAiMessage] = useState<string>('') // AI生成的消息
@@ -243,13 +243,17 @@ export default function HomePage({ onRecordingStateChange }: HomePageProps = {})
   // 植物完成检测 - 监听植物阶段变化
   useEffect(() => {
     if (currentPlant && currentPlant.currentGrowthStage === 'fruiting' && !showCompletionModal) {
-      console.log("sadasdsadasdasdasdasdasdad")
+      // 检查是否已经收藏过这个植物
+      const isAlreadyFavorited = favoritePlants.some(favPlant => favPlant.id === currentPlant.id)
+      
       // 植物达到fruiting阶段，触发成就弹窗
       setCompletedPlant(currentPlant)
       setShowCompletionModal(true)
       
-      // 自动加入收藏
-      addFavoritePlant(currentPlant)
+      // 只有未收藏过的植物才加入收藏
+      if (!isAlreadyFavorited) {
+        addFavoritePlant(currentPlant)
+      }
       
       // 添加成就通知
       addNotification({
@@ -259,7 +263,7 @@ export default function HomePage({ onRecordingStateChange }: HomePageProps = {})
         read: false
       })
     }
-  }, [currentPlant?.currentGrowthStage, currentPlant, showCompletionModal, addFavoritePlant, addNotification])
+  }, [currentPlant?.currentGrowthStage, currentPlant, showCompletionModal, addFavoritePlant, addNotification, favoritePlants])
 
   // 处理成就弹窗关闭
   const handleCompletionModalClose = useCallback(() => {

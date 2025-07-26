@@ -87,9 +87,16 @@ export const useAppStore = create<AppStore>()(
         updateVideoPlaylist: (playlist: string[]) => set({ videoPlaylist: playlist }),
 
         // Actions - 收藏植物相关
-        addFavoritePlant: (plant: Plant) => set((state) => ({
-          favoritePlants: [...state.favoritePlants, plant]
-        })),
+        addFavoritePlant: (plant: Plant) => set((state) => {
+          // 检查是否已经收藏过这个植物
+          const isAlreadyFavorited = state.favoritePlants.some(favPlant => favPlant.id === plant.id)
+          if (isAlreadyFavorited) {
+            return state // 如果已经收藏过，不做任何改变
+          }
+          return {
+            favoritePlants: [...state.favoritePlants, plant]
+          }
+        }),
         
         removeFavoritePlant: (plantId: string) => set((state) => ({
           favoritePlants: state.favoritePlants.filter(plant => plant.id !== plantId)
@@ -104,9 +111,16 @@ export const useAppStore = create<AppStore>()(
         clearFavoritePlants: () => set({ favoritePlants: [] }),
 
         // Actions - 收藏浇水记录相关
-        addFavoriteWateringRecord: (record: WateringRecord) => set((state) => ({
-          favoriteWateringRecords: [...state.favoriteWateringRecords, record]
-        })),
+        addFavoriteWateringRecord: (record: WateringRecord) => set((state) => {
+          // 检查是否已经收藏过这个浇水记录
+          const isAlreadyFavorited = state.favoriteWateringRecords.some(favRecord => favRecord.id === record.id)
+          if (isAlreadyFavorited) {
+            return state // 如果已经收藏过，不做任何改变
+          }
+          return {
+            favoriteWateringRecords: [...state.favoriteWateringRecords, record]
+          }
+        }),
         
         removeFavoriteWateringRecord: (recordId: string) => set((state) => ({
           favoriteWateringRecords: state.favoriteWateringRecords.filter(record => record.id !== recordId)
