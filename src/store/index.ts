@@ -27,6 +27,9 @@ export const useAppStore = create<AppStore>()(
         plantSyncStatus: {},
         wateringRecordSyncStatus: {},
         lastGlobalSync: 0,
+        // 开花抽取功能
+        dailyBloomDraws: {} as Record<string, number>, // 日期 -> 抽取次数
+        lastDrawDate: null as string | null,
 
         // Actions - 植物相关
         setPlants: (plants: Plant[]) => set({ plants }),
@@ -182,6 +185,100 @@ export const useAppStore = create<AppStore>()(
 
         clearFavoriteWateringRecords: () => set({ favoriteWateringRecords: [] }),
 
+        // Actions - 开花抽取功能相关
+        checkCanDrawMemory: (): boolean => {
+          const state = get()
+          const { currentPlantId, plants, wateringRecords, dailyBloomDraws } = state
+          
+          // 检查当前植物是否存在且处于开花状态
+          const currentPlant = currentPlantId ? plants.find(p => p.id === currentPlantId) : null
+          if (!currentPlant || currentPlant.currentGrowthStage !== 'flowering') {
+            return false
+          }
+          
+          // 检查今日是否已浇水
+          const today = new Date().toDateString()
+          const todayWateringRecords = wateringRecords.filter(record => 
+            record.plantId === currentPlantId && 
+            new Date(record.wateringTime).toDateString() === today
+          )
+          
+          if (todayWateringRecords.length === 0) {
+            return false
+          }
+          
+          // 检查今日抽取次数是否小于3
+          const todayDrawCount = dailyBloomDraws[today] || 0
+          return todayDrawCount < 3
+        },
+
+        getTodayDrawCount: (): number => {
+          const state = get()
+          const today = new Date().toDateString()
+          return state.dailyBloomDraws[today] || 0
+        },
+
+        performMemoryDraw: (): WateringRecord | null => {
+          const state = get()
+          const { currentPlantId, wateringRecords, dailyBloomDraws } = state
+          
+          if (!currentPlantId) return null
+          
+          // 获取历史浇水记录（排除今日记录）
+          const today = new Date().toDateString()
+          const historicalRecords = wateringRecords.filter(record => 
+            record.plantId === currentPlantId && 
+            new Date(record.wateringTime).toDateString() !== today &&
+            record.memoryText && // 确保有记忆内容
+            record.emotionTags && record.emotionTags.length > 0 // 确保有情感标签
+          )
+          
+          if (historicalRecords.length === 0) return null
+          
+          // 按情感强度加权随机选择
+          const weightedRecords = historicalRecords.map(record => ({
+            record,
+            weight: (record.emotionIntensity || 1) * Math.random()
+          }))
+          
+          // 选择权重最高的记录
+          const selectedRecord = weightedRecords.reduce((prev, current) => 
+            current.weight > prev.weight ? current : prev
+          ).record
+          
+          // 更新抽取次数
+          const newDrawCount = (dailyBloomDraws[today] || 0) + 1
+          set((state) => ({
+            dailyBloomDraws: {
+              ...state.dailyBloomDraws,
+              [today]: newDrawCount
+            },
+            lastDrawDate: today
+          }))
+          
+          return selectedRecord
+        },
+
+        resetDailyDrawStatus: () => {
+          const today = new Date().toDateString()
+          set((state) => {
+            // 清理过期的抽取记录（保留最近7天）
+            const sevenDaysAgo = new Date()
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+            
+            const cleanedDraws = Object.fromEntries(
+              Object.entries(state.dailyBloomDraws).filter(([date]) => 
+                new Date(date) >= sevenDaysAgo
+              )
+            )
+            
+            return {
+              dailyBloomDraws: cleanedDraws,
+              lastDrawDate: today
+            }
+          })
+        },
+
         // Actions - 同步状态相关
         setSyncStatus: (entityId: string, type: 'plant' | 'watering', status: Partial<SyncStatus>) => set((state) => {
           const statusKey = type === 'plant' ? 'plantSyncStatus' : 'wateringRecordSyncStatus'
@@ -314,7 +411,10 @@ export const useAppStore = create<AppStore>()(
               { ...status, isSyncing: false }  // 强制设为 false
             ])
           ),
-          lastGlobalSync: state.lastGlobalSync
+          lastGlobalSync: state.lastGlobalSync,
+          // 开花抽取功能数据
+          dailyBloomDraws: state.dailyBloomDraws,
+          lastDrawDate: state.lastDrawDate
         })
       }
     )

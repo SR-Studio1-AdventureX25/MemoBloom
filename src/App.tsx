@@ -3,6 +3,7 @@ import LoadingProgress from '@/components/LoadingProgress'
 import PageContainer from '@/components/PageContainer'
 import CreatePlant from '@/pages/CreatePlant'
 import DebugPage from '@/pages/DebugPage'
+import BloomTestPage from '@/pages/BloomTestPage'
 import PWAInstallPrompt from '@/components/PWAInstallPrompt'
 import PWAUpdatePrompt from '@/components/PWAUpdatePrompt'
 import { createHashRouter, RouterProvider, Navigate, useNavigate } from 'react-router'
@@ -157,6 +158,10 @@ function App() {
     {
       path: '/debug',
       element: <DebugPage />
+    },
+    {
+      path: '/bloom-test',
+      element: <BloomTestPage />
     }
   ]);
 

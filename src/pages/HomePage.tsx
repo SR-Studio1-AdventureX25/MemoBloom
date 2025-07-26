@@ -5,6 +5,7 @@ import { useAppStore } from '@/store'
 import VideoBackground from '@/components/VideoBackground'
 import MicrophoneButton from '@/components/MicrophoneButton'
 import SyncStatusIndicator from '@/components/SyncStatusIndicator'
+import { BloomDrawSystem } from '@/components/BloomDrawSystem'
 
 // 常量
 const LOADING_TEXT = '检查植物状态中...'
@@ -305,6 +306,11 @@ export default function HomePage({ onRecordingStateChange }: HomePageProps = {})
 
         {/* 消息气泡 - 显示AI生成的消息 */}
         <MessageBubble message={aiMessage} />
+
+        {/* 开花记忆抽取系统 */}
+        <div className="absolute top-80 left-1/2 transform -translate-x-1/2 z-10">
+          <BloomDrawSystem />
+        </div>
 
         {/* 视频背景 */}
         <VideoBackground showOverlay={isRecording} />

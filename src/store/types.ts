@@ -54,6 +54,12 @@ export interface AppActions {
   syncPlant: (plantId: string) => Promise<Plant | null>
   syncWateringRecord: (recordId: string) => Promise<WateringRecord | null>
   syncIncompleteRecords: () => Promise<void>
+  
+  // 开花抽取功能相关
+  checkCanDrawMemory: () => boolean
+  getTodayDrawCount: () => number
+  performMemoryDraw: () => WateringRecord | null
+  resetDailyDrawStatus: () => void
 }
 
 // Store完整类型（状态 + 动作）

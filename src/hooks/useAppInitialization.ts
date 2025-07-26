@@ -75,6 +75,9 @@ export const useAppInitialization = () => {
         }
       })
       
+      // 重置每日抽取状态（如果需要）
+      store.resetDailyDrawStatus()
+      
       // 初始化PWA服务
       await pwaService.init()
       

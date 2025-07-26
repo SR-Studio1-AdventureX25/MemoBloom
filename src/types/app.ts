@@ -37,4 +37,7 @@ export interface AppState {
   plantSyncStatus: Record<string, SyncStatus>  // 植物同步状态
   wateringRecordSyncStatus: Record<string, SyncStatus>  // 浇水记录同步状态
   lastGlobalSync: number          // 最后全局同步时间
+  // 开花抽取功能
+  dailyBloomDraws: Record<string, number> // 日期 -> 抽取次数
+  lastDrawDate: string | null     // 最后抽取日期
 }

@@ -175,3 +175,36 @@
 .animate-fade-in-up {
   animation: fade-in-up 0.6s ease-out 0.3s both;
 }
+
+/* 花苞轻柔弹跳动画 */
+@keyframes bounce-gentle {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-8px);
+  }
+  60% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-bounce-gentle {
+  animation: bounce-gentle 3s ease-in-out infinite;
+}
+
+/* 花苞发光脉冲动画 */
+@keyframes bloom-glow {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1.2);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.4);
+  }
+}
+
+.animate-bloom-glow {
+  animation: bloom-glow 2s ease-in-out infinite;
+}
