@@ -183,8 +183,31 @@ export const useWalletStore = create<WalletStore>()(
               if (typeof credential !== 'string') {
                 throw new Error('PIN码必须是字符串')
               }
+              
+              // 验证PIN码格式
+              if (!walletCrypto.validatePin(credential)) {
+                throw new Error('PIN码格式无效')
+              }
+              
+              // 检查PIN码是否被锁定
+              if (walletCrypto.isPinBlocked()) {
+                const remainingTime = walletCrypto.getRemainingBlockTime()
+                throw new Error(`PIN码已锁定，请等待${remainingTime}分钟后重试`)
+              }
+              
               password = credential
             } else {
+              // Passkey模式需要重新验证
+              if (!(credential instanceof ArrayBuffer)) {
+                throw new Error('Passkey模式需要提供有效的认证凭据')
+              }
+              
+              // 验证Passkey凭据
+              const isValid = await passkeyAuth.verifyCredential()
+              if (!isValid) {
+                throw new Error('Passkey验证失败')
+              }
+              
               const storedPassword = localStorage.getItem('memobloom-wallet-password')
               if (!storedPassword) {
                 throw new Error('未找到钱包密码')
@@ -192,11 +215,26 @@ export const useWalletStore = create<WalletStore>()(
               password = storedPassword
             }
 
+            // 尝试解密助记词
             const mnemonic = await walletCrypto.decryptMnemonic(encryptedMnemonic, password)
+            
+            // PIN模式下重置失败尝试次数
+            if (authMethod === 'pin') {
+              walletCrypto.resetPinAttempts()
+            }
+            
             return mnemonic
           } catch (error) {
             console.error('导出助记词失败:', error)
-            return null
+            
+            // PIN模式下记录失败尝试
+            const { authMethod } = get()
+            if (authMethod === 'pin' && typeof credential === 'string') {
+              walletCrypto.recordFailedPinAttempt()
+            }
+            
+            // 重新抛出错误而不是返回null
+            throw error
           }
         },
 

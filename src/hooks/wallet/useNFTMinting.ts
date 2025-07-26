@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAppStore } from '@/store'
 import { useWalletStore } from '@/store/walletStore'
+import { useWalletAuth } from './useWalletAuth'
 import { nftService } from '@/services/nftService'
 import { PrivateKey } from '@injectivelabs/sdk-ts'
 import type { Plant, WateringRecord } from '@/types'
@@ -8,8 +9,10 @@ import type { Plant, WateringRecord } from '@/types'
 export function useNFTMinting(walletAddress: string | null) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  
   const { updateFavoritePlant, updateFavoriteWateringRecord, wateringRecords } = useAppStore()
-  const { exportMnemonic, isWalletLocked } = useWalletStore()
+  const { isWalletLocked } = useWalletStore()
+  const { authenticateAndGetMnemonic } = useWalletAuth()
 
   const mintPlantNFT = async (plant: Plant) => {
     if (plant.nftMinted || !walletAddress) return
@@ -23,11 +26,8 @@ export function useNFTMinting(walletAddress: string | null) {
         throw new Error('钱包已锁定，请先解锁')
       }
 
-      // 获取助记词并生成私钥
-      const mnemonic = await exportMnemonic('')
-      if (!mnemonic) {
-        throw new Error('无法获取钱包助记词')
-      }
+      // 通过用户认证获取助记词
+      const mnemonic = await authenticateAndGetMnemonic()
 
       // 使用Injective SDK直接从助记词生成私钥
       const privateKeyObj = PrivateKey.fromMnemonic(mnemonic.trim(), "m/44'/60'/0'/0/0")
@@ -83,11 +83,8 @@ export function useNFTMinting(walletAddress: string | null) {
         throw new Error('钱包已锁定，请先解锁')
       }
 
-      // 获取助记词并生成私钥
-      const mnemonic = await exportMnemonic('')
-      if (!mnemonic) {
-        throw new Error('无法获取钱包助记词')
-      }
+      // 通过用户认证获取助记词
+      const mnemonic = await authenticateAndGetMnemonic()
 
       // 使用Injective SDK直接从助记词生成私钥
       const privateKeyObj = PrivateKey.fromMnemonic(mnemonic.trim(), "m/44'/60'/0'/0/0")
