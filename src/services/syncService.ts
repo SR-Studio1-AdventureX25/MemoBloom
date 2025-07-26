@@ -504,13 +504,11 @@ class SyncService {
 // 导出单例
 export const syncService = new SyncService()
 
-// 导出便捷方法
-export const {
-  syncSinglePlant,
-  syncSingleWateringRecord,
-  smartSync,
-  backgroundSync,
-  getCurrentPlantWithSync,
-  markEntityModified,
-  markPlantAndRecordsModified
-} = syncService
+// 导出绑定的方法以保持this上下文
+export const syncSinglePlant = syncService.syncSinglePlant.bind(syncService)
+export const syncSingleWateringRecord = syncService.syncSingleWateringRecord.bind(syncService)
+export const smartSync = syncService.smartSync.bind(syncService)
+export const backgroundSync = syncService.backgroundSync.bind(syncService)
+export const getCurrentPlantWithSync = syncService.getCurrentPlantWithSync.bind(syncService)
+export const markEntityModified = syncService.markEntityModified.bind(syncService)
+export const markPlantAndRecordsModified = syncService.markPlantAndRecordsModified.bind(syncService)
