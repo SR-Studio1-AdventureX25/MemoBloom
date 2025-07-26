@@ -36,49 +36,35 @@ export default function CreatePlant({ onPlantCreated, onCancel }: CreatePlantPro
       return
     }
 
+    // 检查网络连接状态
+    if (!isOnline) {
+      addNotification({
+        title: '需要网络连接',
+        message: '创建植物需要连接到网络，请检查你的网络连接后重试',
+        type: 'warning',
+        read: false
+      })
+      return
+    }
+
     setIsCreating(true)
 
     try {
-      if (isOnline) {
-        // 在线创建
-        const response = await apiService.plants.create({
-          variety: selectedVariety
-        })
+      // 在线创建
+      const response = await apiService.plants.create({
+        variety: selectedVariety
+      })
 
-        const newPlant = response.data.plant
-        addPlant(newPlant)
-        onPlantCreated(newPlant)
+      const newPlant = response.data.plant
+      addPlant(newPlant)
+      onPlantCreated(newPlant)
 
-        addNotification({
-          title: '植物创建成功',
-          message: `你的${selectedVariety}已经开始成长了！`,
-          type: 'success',
-          read: false
-        })
-      } else {
-        // 离线创建（创建本地植物记录）
-        const newPlant: Plant = {
-          id: `local_${Date.now()}`, // 临时本地ID
-          variety: selectedVariety,
-          currentGrowthStage: 'seed',
-          growthValue: 0,
-          lastWateringTime: '',
-          userRecentStatus: '',
-          personalityTags: [],
-          nftMinted: false,
-          createdAt: new Date().toISOString()
-        }
-
-        addPlant(newPlant)
-        onPlantCreated(newPlant)
-
-        addNotification({
-          title: '植物创建成功（离线）',
-          message: '植物将在连接网络后同步到服务器',
-          type: 'info',
-          read: false
-        })
-      }
+      addNotification({
+        title: '植物创建成功',
+        message: `你的${selectedVariety}已经开始成长了！`,
+        type: 'success',
+        read: false
+      })
     } catch (error) {
       console.error('创建植物失败:', error)
       addNotification({
@@ -105,11 +91,18 @@ export default function CreatePlant({ onPlantCreated, onCancel }: CreatePlantPro
           </p>
           
           {/* 在线状态指示 */}
-          <div className="flex items-center justify-center mt-4">
-            <div className={`w-2 h-2 rounded-full mr-2 ${isOnline ? 'bg-green-400' : 'bg-yellow-400'}`} />
-            <span className="text-white/60 text-sm">
-              {isOnline ? '在线模式' : '离线模式'}
-            </span>
+          <div className="flex flex-col items-center justify-center mt-4">
+            <div className="flex items-center">
+              <div className={`w-2 h-2 rounded-full mr-2 ${isOnline ? 'bg-green-400' : 'bg-red-400'}`} />
+              <span className="text-white/60 text-sm">
+                {isOnline ? '在线模式' : '离线模式'}
+              </span>
+            </div>
+            {!isOnline && (
+              <p className="text-red-400 text-xs mt-1 text-center">
+                需要网络连接才能创建植物
+              </p>
+            )}
           </div>
         </div>
 
@@ -158,9 +151,9 @@ export default function CreatePlant({ onPlantCreated, onCancel }: CreatePlantPro
         <div className="space-y-3">
           <button
             onClick={handleCreatePlant}
-            disabled={isCreating || !selectedVariety}
+            disabled={isCreating || !selectedVariety || !isOnline}
             className={`w-full py-4 px-6 rounded-xl font-semibold text-lg transition-all duration-200 ${
-              isCreating || !selectedVariety
+              isCreating || !selectedVariety || !isOnline
                 ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                 : 'bg-gradient-to-r from-green-500 to-blue-500 text-white hover:from-green-600 hover:to-blue-600 shadow-lg hover:shadow-xl transform hover:scale-105'
             }`}
@@ -170,6 +163,8 @@ export default function CreatePlant({ onPlantCreated, onCancel }: CreatePlantPro
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                 创建中...
               </div>
+            ) : !isOnline ? (
+              '需要网络连接'
             ) : (
               '开始培养我的植物'
             )}
