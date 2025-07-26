@@ -62,12 +62,12 @@ export const LibraryGrid = memo(function LibraryGrid({
       <div className="flex gap-8">
         {Array.from({ length: 10 }, (_, i) => (
           <div key={`row1-${i}`} className="w-32 h-32 flex-shrink-0 p-6">
-            {i % 2 === 0 && sortedPlants.length > 0 ? (
+            {i % 2 === 0 && sortedPlants.length > 0 && Math.floor(i/2) < sortedPlants.length ? (
               // 奇数位（索引0,2,4...）放PlantBox，如果有收藏植物的话
               <PlantBox 
-                plant={sortedPlants[Math.floor(i/2) % sortedPlants.length]} 
+                plant={sortedPlants[Math.floor(i/2)]} 
                 offset={{x: 0, y: 0}}
-                onClick={(event) => onPlantClick(sortedPlants[Math.floor(i/2) % sortedPlants.length], event)}
+                onClick={(event) => onPlantClick(sortedPlants[Math.floor(i/2)], event)}
               />
             ) : (
               // 其他位置留空
@@ -81,12 +81,12 @@ export const LibraryGrid = memo(function LibraryGrid({
       <div className="flex gap-8">
         {Array.from({ length: 10 }, (_, i) => (
           <div key={`row2-${i}`} className="w-32 h-32 flex-shrink-0 p-6">
-            {i % 2 === 1 && sortedAudios.length > 0 ? (
+            {i % 2 === 1 && sortedAudios.length > 0 && Math.floor(i/2) < sortedAudios.length ? (
               // 偶数位（索引1,3,5...）放AudioBox，如果有收藏浇水记录的话
               <AudioBox 
-                audioRecord={sortedAudios[Math.floor(i/2) % sortedAudios.length]} 
+                audioRecord={sortedAudios[Math.floor(i/2)]} 
                 offset={{x: 0, y: 0}}
-                onClick={(event) => onAudioClick(sortedAudios[Math.floor(i/2) % sortedAudios.length], event)}
+                onClick={(event) => onAudioClick(sortedAudios[Math.floor(i/2)], event)}
               />
             ) : (
               // 其他位置留空
