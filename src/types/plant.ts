@@ -4,7 +4,7 @@ export interface Plant {
   variety: string                 // 植物品种
   currentGrowthStage: string      // 当前生长阶段
   growthValue: number             // 成长值
-  lastWateringTime: string        // 上次浇水时间
+  lastWateringTime: number        // 上次浇水时间
   userRecentStatus: string        // 用户近期状况（字符串）
   personalityTags: string[]       // 植物个性标签（字符串数组）
   nftMinted: boolean              // NFT铸造状态（布尔）
