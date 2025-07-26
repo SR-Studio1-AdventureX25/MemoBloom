@@ -167,7 +167,7 @@ interface BackendAudioResponse {
 const mapChineseToEnglishGrowthStage = (chineseStage: string): string => {
   const stageMap: Record<string, string> = {
     '种子': 'seed',
-    '发芽': 'sprout',
+    '幼苗': 'sprout',
     '含苞': 'mature',
     '开花': 'flowering',
     '结束': 'fruiting'
