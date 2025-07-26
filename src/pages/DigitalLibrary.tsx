@@ -179,6 +179,28 @@ const AudioBox = memo(function ({audioRecord, offset, onClick}: {audioRecord: Wa
   </>);
 });
 
+const EmptyBox = memo(function ({offset}: {offset: {x: number, y: number}}) {
+  return (
+    <div 
+      className="w-32 h-32 bg-cover bg-center bg-no-repeat transition-transform duration-300"
+      style={{
+        backgroundImage: `url("/box.png")`,
+        transform: `translate(${offset.x}px, ${offset.y}px)`,
+        filter: `
+          drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3))
+          drop-shadow(0 8px 16px rgba(0, 0, 0, 0.15))
+          drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4))
+        `,
+        opacity: 0.7
+      }}
+    >
+      <div className="w-full h-full flex items-center justify-center text-gray-500 text-sm">
+        空
+      </div>
+    </div>
+  );
+});
+
 // 全屏音频详情组件
 const AudioDetailModal = memo(function ({
   audioRecord, 
@@ -474,7 +496,7 @@ export default function DigitalLibraryPage() {
       >
         {/* 内容容器 - 足够宽以容纳所有卡片 */}
         <div className="flex flex-col gap-16">
-          {/* 第一行 - 奇数位放PlantBox，偶数位留空 */}
+          {/* 第一行 - 确保至少显示2个空box */}
           <div className="flex gap-8">
             {Array.from({ length: 10 }, (_, i) => (
               <div key={`row1-${i}`} className="w-32 h-32 flex-shrink-0 p-6">
@@ -484,15 +506,18 @@ export default function DigitalLibraryPage() {
                     plant={sortedPlants[Math.floor(i/2) % sortedPlants.length]} 
                     offset={boxOffsets[`row1-${i}`] || {x: 0, y: 0}}
                   />
+                ) : i < 4 ? (
+                  // 前4个位置（索引0,1,2,3）如果没有内容则显示空box，确保至少有2个空box
+                  <EmptyBox offset={boxOffsets[`row1-${i}`] || {x: 0, y: 0}} />
                 ) : (
-                  // 偶数位留空，或者没有收藏植物时留空
+                  // 其他位置留空
                   <div className="w-32 h-32"></div>
                 )}
               </div>
             ))}
           </div>
 
-          {/* 第二行 - 偶数位放AudioBox，奇数位留空 */}
+          {/* 第二行 - 确保至少显示1个空box */}
           <div className="flex gap-8">
             {Array.from({ length: 10 }, (_, i) => (
               <div key={`row2-${i}`} className="w-32 h-32 flex-shrink-0 p-6">
@@ -503,8 +528,11 @@ export default function DigitalLibraryPage() {
                     offset={boxOffsets[`row2-${i}`] || {x: 0, y: 0}}
                     onClick={(event) => handleAudioClick(sortedAudios[Math.floor(i/2) % sortedAudios.length], event)}
                   />
+                ) : i < 2 ? (
+                  // 前2个位置（索引0,1）如果没有内容则显示空box，确保至少有1个空box
+                  <EmptyBox offset={boxOffsets[`row2-${i}`] || {x: 0, y: 0}} />
                 ) : (
-                  // 奇数位留空，或者没有收藏浇水记录时留空
+                  // 其他位置留空
                   <div className="w-32 h-32"></div>
                 )}
               </div>
