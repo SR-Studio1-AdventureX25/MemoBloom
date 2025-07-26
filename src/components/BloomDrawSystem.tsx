@@ -21,11 +21,6 @@ export const BloomDrawSystem = memo<BloomDrawSystemProps>(({ className = "" }) =
   
   const [selectedRecord, setSelectedRecord] = useState<WateringRecord | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [animationData, setAnimationData] = useState<{
-    startX: number
-    startY: number
-    startSize: number
-  } | null>(null)
   
   const budRefs = useRef<(HTMLDivElement | null)[]>([])
 
@@ -101,7 +96,7 @@ export const BloomDrawSystem = memo<BloomDrawSystemProps>(({ className = "" }) =
   console.log('- Final availableRecordsCount:', availableRecordsCount)
 
   // 处理花苞点击
-  const handleBudClick = useCallback((budIndex: number) => {
+  const handleBudClick = useCallback(() => {
     if (!canDraw) {
       // 显示不能抽取的原因
       if (!hasWateredToday) {
@@ -142,17 +137,6 @@ export const BloomDrawSystem = memo<BloomDrawSystemProps>(({ className = "" }) =
       return
     }
 
-    // 获取花苞位置信息用于动画
-    const budElement = budRefs.current[budIndex]
-    if (budElement) {
-      const rect = budElement.getBoundingClientRect()
-      setAnimationData({
-        startX: rect.left + rect.width / 2 - 30, // 30是唱片半径
-        startY: rect.top + rect.height / 2 - 30,
-        startSize: 60 // 花苞大小
-      })
-    }
-
     // 设置选中的记录并打开模态框
     setSelectedRecord(drawnRecord)
     setIsModalOpen(true)
@@ -170,7 +154,6 @@ export const BloomDrawSystem = memo<BloomDrawSystemProps>(({ className = "" }) =
   const handleCloseModal = useCallback(() => {
     setIsModalOpen(false)
     setSelectedRecord(null)
-    setAnimationData(null)
   }, [])
 
   // 如果植物不在开花状态，不显示抽取系统
@@ -189,7 +172,7 @@ export const BloomDrawSystem = memo<BloomDrawSystemProps>(({ className = "" }) =
           >
             <BloomBud
               index={index}
-              onClick={() => handleBudClick(index)}
+              onClick={handleBudClick}
               disabled={!canDraw || index >= remainingDraws}
             />
           </div>
@@ -201,7 +184,6 @@ export const BloomDrawSystem = memo<BloomDrawSystemProps>(({ className = "" }) =
         audioRecord={selectedRecord}
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        animationData={animationData}
       />
     </div>
   )
