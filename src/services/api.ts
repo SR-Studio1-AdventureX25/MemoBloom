@@ -141,7 +141,7 @@ interface BackendWaterResponse {
   access_token: string
   detail?: {
     [key: string]: unknown
-    '关联植物ID'?: string[]
+    '关联植物ID'?: {link_record_ids: string[]}
     '植物成长值'?: number
     '记忆内容'?: Array<{ file_token: string }>
     '记忆文本'?: Array<{ text: string }>
@@ -224,7 +224,7 @@ const mapBackendWaterToFrontend = (backendData: BackendWaterResponse): WateringR
   const detail = backendData.detail || {}
   return {
     id: backendData.record_id,
-    plantId: detail['关联植物ID']?.[0] || '',
+    plantId: detail['关联植物ID']?.['link_record_ids'][0] || '',
     plantGrowthValue: detail['植物成长值'] || 0,
     memoryFile: detail['记忆内容']?.[0]?.file_token,
     memoryText: detail['记忆文本']?.[0]?.text,
