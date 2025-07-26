@@ -101,4 +101,12 @@ Refer to [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed instructions.
 
 ## License
 
-MIT License
+This project is licensed under the **MIT with Non-Commercial Restriction** License.
+
+### Key Restrictions:
+⚠️ **Commercial use is strictly prohibited** ⚠️  
+- Not for use in any profit-generating activities  
+- Not for use in any commercial products or services  
+- Use by companies or organizations requires explicit authorization  
+
+[View Full License Agreement](LICENSE)
