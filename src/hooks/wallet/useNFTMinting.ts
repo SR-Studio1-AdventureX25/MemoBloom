@@ -52,7 +52,7 @@ export function useNFTMinting(walletAddress: string | null) {
       // 更新收藏中的植物NFT状态
       updateFavoritePlant(plant.id, {
         nftMinted: true,
-        nftAddress: `${result.tokenId}`, // 使用tokenId作为地址标识
+        nftAddress: result.transactionHash, // 使用交易哈希作为区块链地址
         nftWalletAddress: walletAddress
       })
 
@@ -106,7 +106,7 @@ export function useNFTMinting(walletAddress: string | null) {
       // 更新收藏中的浇水记录NFT状态
       updateFavoriteWateringRecord(record.id, {
         nftMinted: true,
-        nftAddress: `${result.tokenId}`, // 使用tokenId作为地址标识
+        nftAddress: result.transactionHash, // 使用交易哈希作为区块链地址
         nftWalletAddress: walletAddress,
         nftMintTime: new Date().toISOString()
       })
