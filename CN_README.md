@@ -99,6 +99,14 @@ export default tseslint.config([
 
 <a href="https://app.fossa.com/projects/git%2Bgithub.com%2FSR-Studio1-AdventureX25%2FMemoBloom?ref=badge_large&issueType=license" alt="FOSSA Status"><img src="https://app.fossa.com/api/projects/git%2Bgithub.com%2FSR-Studio1-AdventureX25%2FMemoBloom.svg?type=large&issueType=license"/></a>
 
-## 许可证
+## 许可协议
 
-MIT 许可证
+本项目采用 **MIT with Non-Commercial Restriction** 许可协议。
+
+### 关键限制：
+⚠️ **禁止任何商业用途** ⚠️  
+- 不得用于任何盈利性活动  
+- 不得用于任何商业产品或服务  
+- 企业或组织使用需获得明确授权  
+
+[查看完整许可协议](LICENSE)
