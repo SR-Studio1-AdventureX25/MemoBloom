@@ -1,7 +1,8 @@
 <div align="center">
 
 # <image src="https://mb.sr-studio.cn/img/memobloom-logo.png" height="45"/>  植忆
-<a href="https://app.fossa.com/projects/git%2Bgithub.com%2FSRInternet-Studio%2FJianer_QQ_bot?ref=badge_shield&issueType=security" alt="FOSSA Status"><img src="https://app.fossa.com/api/projects/git%2Bgithub.com%2FSRInternet-Studio%2FJianer_QQ_bot.svg?type=shield&issueType=security"/></a>
+<a href="https://app.fossa.com/projects/git%2Bgithub.com%2FSR-Studio1-AdventureX25%2FMemoBloom?ref=badge_shield&issueType=security" alt="FOSSA Status"><img src="https://app.fossa.com/api/projects/git%2Bgithub.com%2FSR-Studio1-AdventureX25%2FMemoBloom.svg?type=shield&issueType=security"/></a>
+<a href="https://app.fossa.com/projects/git%2Bgithub.com%2FSR-Studio1-AdventureX25%2FMemoBloom?ref=badge_shield&issueType=license" alt="FOSSA Status"><img src="https://app.fossa.com/api/projects/git%2Bgithub.com%2FSR-Studio1-AdventureX25%2FMemoBloom.svg?type=shield&issueType=license"/></a>
 <img src="https://img.shields.io/badge/Language-TypeScript-3178c6" alt="Language">
 <img src="https://img.shields.io/static/v1?label=LICENSE&message=GPL-3.0&color=coral" alt="Badge">
 <img alt="GitLab Stars" src="https://img.shields.io/github/stars/SR-Studio1-AdventureX25/MemoBloom?label=Stars">
@@ -92,6 +93,10 @@ export default tseslint.config([
 ## 部署指南
 
 详细部署说明请参考 [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
+
+## 安全状态        <a href="https://app.fossa.com/projects/git%2Bgithub.com%2FSR-Studio1-AdventureX25%2FMemoBloom?ref=badge_small" alt="FOSSA Status"><img src="https://app.fossa.com/api/projects/git%2Bgithub.com%2FSR-Studio1-AdventureX25%2FMemoBloom.svg?type=small"/></a>
+
+<a href="https://app.fossa.com/projects/git%2Bgithub.com%2FSR-Studio1-AdventureX25%2FMemoBloom?ref=badge_large&issueType=license" alt="FOSSA Status"><img src="https://app.fossa.com/api/projects/git%2Bgithub.com%2FSR-Studio1-AdventureX25%2FMemoBloom.svg?type=large&issueType=license"/></a>
 
 ## 许可证
 
