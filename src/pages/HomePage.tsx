@@ -243,6 +243,7 @@ export default function HomePage({ onRecordingStateChange }: HomePageProps = {})
   // 植物完成检测 - 监听植物阶段变化
   useEffect(() => {
     if (currentPlant && currentPlant.currentGrowthStage === 'fruiting' && !showCompletionModal) {
+      console.log("sadasdsadasdasdasdasdasdad")
       // 植物达到fruiting阶段，触发成就弹窗
       setCompletedPlant(currentPlant)
       setShowCompletionModal(true)
