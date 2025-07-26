@@ -34,9 +34,7 @@ export interface AppState {
   // 收藏功能
   favoritePlants: Plant[]         // 收藏的植物快照列表
   favoriteWateringRecords: WateringRecord[] // 收藏的浇水记录快照列表
-  // 同步状态管理
-  plantSyncStatus: Record<string, SyncStatus>  // 植物同步状态
-  wateringRecordSyncStatus: Record<string, SyncStatus>  // 浇水记录同步状态
+  // 简化的同步状态管理
   lastGlobalSync: number          // 最后全局同步时间
   // 开花抽取功能
   dailyBloomDraws: Record<string, number> // 日期 -> 抽取次数

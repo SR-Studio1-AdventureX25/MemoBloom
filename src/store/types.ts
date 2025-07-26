@@ -1,8 +1,7 @@
 import type { 
   AppState, 
   Plant, 
-  WateringRecord, 
-  SyncStatus
+  WateringRecord
 } from '@/types'
 
 // Store Actions接口定义
@@ -45,15 +44,8 @@ export interface AppActions {
   updateFavoriteWateringRecord: (id: string, updates: Partial<WateringRecord>) => void
   clearFavoriteWateringRecords: () => void
   
-  // 同步状态相关
-  setSyncStatus: (entityId: string, type: 'plant' | 'watering', status: Partial<SyncStatus>) => void
-  getSyncStatus: (entityId: string, type: 'plant' | 'watering') => SyncStatus
+  // 简化的同步状态相关
   setLastGlobalSync: (timestamp: number) => void
-  
-  // 智能同步相关
-  syncPlant: (plantId: string) => Promise<Plant | null>
-  syncWateringRecord: (recordId: string) => Promise<WateringRecord | null>
-  syncIncompleteRecords: () => Promise<void>
   
   // 开花抽取功能相关
   checkCanDrawMemory: () => boolean

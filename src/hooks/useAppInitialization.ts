@@ -47,36 +47,10 @@ export const useAppInitialization = () => {
     hasInitialized.current = true
 
     try {
-      // 重置所有卡住的同步状态
-      const store = useAppStore.getState()
-      
-      console.log('应用启动：检查并重置同步状态')
-      
-      // 重置植物同步状态
-      Object.keys(store.plantSyncStatus).forEach(plantId => {
-        const status = store.plantSyncStatus[plantId]
-        if (status?.isSyncing) {
-          console.log(`重置卡住的植物同步状态: ${plantId}`)
-          store.setSyncStatus(plantId, 'plant', { 
-            isSyncing: false,
-            error: undefined
-          })
-        }
-      })
-      
-      // 重置浇水记录同步状态
-      Object.keys(store.wateringRecordSyncStatus).forEach(recordId => {
-        const status = store.wateringRecordSyncStatus[recordId]
-        if (status?.isSyncing) {
-          console.log(`重置卡住的浇水记录同步状态: ${recordId}`)
-          store.setSyncStatus(recordId, 'watering', { 
-            isSyncing: false,
-            error: undefined
-          })
-        }
-      })
+      console.log('应用启动：初始化中...')
       
       // 重置每日抽取状态（如果需要）
+      const store = useAppStore.getState()
       store.resetDailyDrawStatus()
       
       // 初始化PWA服务

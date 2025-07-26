@@ -6,13 +6,11 @@ import type { Plant, WateringRecord } from '@/types'
 const SYNC_CONFIG = {
   WATERING_RETRY_INTERVAL: 60 * 1000, // 1分钟重试间隔
   MAX_RETRY_COUNT: 10,                 // 最大重试次数
-  BATCH_SIZE: 5,                       // 批量同步大小
 } as const
 
 class SyncService {
   private wateringRetryTimers = new Map<string, NodeJS.Timeout>()
   private plantSyncPromises = new Map<string, Promise<Plant | null>>()
-  private wateringSyncPromises = new Map<string, Promise<WateringRecord | null>>()
 
   /**
    * 检查浇水记录字段是否完整
@@ -59,23 +57,6 @@ class SyncService {
    * 同步单个浇水记录
    */
   async syncSingleWateringRecord(recordId: string): Promise<WateringRecord | null> {
-    // 避免重复请求
-    if (this.wateringSyncPromises.has(recordId)) {
-      return this.wateringSyncPromises.get(recordId)!
-    }
-
-    const promise = this._syncWateringRecordInternal(recordId)
-    this.wateringSyncPromises.set(recordId, promise)
-
-    try {
-      const result = await promise
-      return result
-    } finally {
-      this.wateringSyncPromises.delete(recordId)
-    }
-  }
-
-  private async _syncWateringRecordInternal(recordId: string): Promise<WateringRecord | null> {
     const store = useAppStore.getState()
     const localRecord = store.wateringRecords.find(r => r.id === recordId)
     
@@ -86,12 +67,6 @@ class SyncService {
 
     try {
       console.log(`开始同步浇水记录: ${recordId}`)
-      
-      // 标记为同步中
-      store.setSyncStatus(recordId, 'watering', { 
-        isSyncing: true, 
-        error: undefined
-      })
 
       // 从服务器获取最新数据
       const response = await apiService.watering.getRecordById(recordId)
@@ -108,16 +83,6 @@ class SyncService {
 
       // 检查字段是否完整
       const isComplete = this.isWateringRecordComplete(serverRecord)
-      
-      // 更新同步状态
-      store.setSyncStatus(recordId, 'watering', {
-        isSyncing: false,
-        isComplete,
-        lastSync: Date.now(),
-        error: undefined,
-        retryCount: 0,
-        isFailed: false
-      })
 
       if (isComplete) {
         // 字段完整，清除重试定时器
@@ -137,27 +102,8 @@ class SyncService {
     } catch (error) {
       console.error(`浇水记录同步失败: ${recordId}`, error)
       
-      const currentStatus = store.getSyncStatus(recordId, 'watering')
-      const retryCount = (currentStatus.retryCount || 0) + 1
-      const isFailed = retryCount >= SYNC_CONFIG.MAX_RETRY_COUNT
-      
-      store.setSyncStatus(recordId, 'watering', {
-        isSyncing: false,
-        error: error instanceof Error ? error.message : 'Unknown sync error',
-        retryCount,
-        isFailed
-      })
-
-      if (!isFailed) {
-        // 还可以重试，安排下次重试
-        this.scheduleWateringRecordRetry(recordId)
-        console.log(`浇水记录同步失败，将重试 (${retryCount}/${SYNC_CONFIG.MAX_RETRY_COUNT}): ${recordId}`)
-      } else {
-        // 超过最大重试次数，停止重试
-        this.clearRetryTimer(recordId)
-        console.error(`浇水记录同步失败，已停止重试: ${recordId}`)
-      }
-
+      // 安排重试
+      this.scheduleWateringRecordRetry(recordId)
       return null
     }
   }
@@ -168,12 +114,6 @@ class SyncService {
   private scheduleWateringRecordRetry(recordId: string): void {
     // 清除现有定时器
     this.clearRetryTimer(recordId)
-    
-    const store = useAppStore.getState()
-    const nextRetryTime = Date.now() + SYNC_CONFIG.WATERING_RETRY_INTERVAL
-    
-    // 更新下次重试时间
-    store.setSyncStatus(recordId, 'watering', { nextRetryTime })
     
     // 设置新的定时器
     const timer = setTimeout(() => {
@@ -226,12 +166,6 @@ class SyncService {
 
     try {
       console.log(`开始同步植物: ${plantId}`)
-      
-      // 标记为同步中
-      store.setSyncStatus(plantId, 'plant', { 
-        isSyncing: true, 
-        error: undefined
-      })
 
       // 从服务器获取最新数据
       const response = await apiService.plants.getById(plantId)
@@ -250,27 +184,11 @@ class SyncService {
         console.log(`植物数据已更新: ${plantId}`)
       }
 
-      // 植物记录不需要检查字段完整性，直接标记为完成
-      store.setSyncStatus(plantId, 'plant', {
-        isSyncing: false,
-        isComplete: true,
-        lastSync: Date.now(),
-        error: undefined,
-        isFailed: false
-      })
-
       console.log(`植物同步完成: ${plantId}`)
       return hasChanged ? serverPlant : localPlant
 
     } catch (error) {
       console.error(`植物同步失败: ${plantId}`, error)
-      
-      store.setSyncStatus(plantId, 'plant', {
-        isSyncing: false,
-        error: error instanceof Error ? error.message : 'Unknown sync error',
-        isFailed: true
-      })
-
       return null
     }
   }
@@ -302,75 +220,78 @@ class SyncService {
     // 检查字段是否完整
     if (this.isWateringRecordComplete(record)) {
       console.log(`浇水记录字段已完整，无需同步: ${recordId}`)
-      store.setSyncStatus(recordId, 'watering', {
-        isComplete: true,
-        isFailed: false,
-        retryCount: 0
-      })
       return
     }
-
-    // 初始化同步状态
-    store.setSyncStatus(recordId, 'watering', {
-      isComplete: false,
-      isFailed: false,
-      retryCount: 0,
-      maxRetries: SYNC_CONFIG.MAX_RETRY_COUNT,
-      lastModified: Date.now()
-    })
 
     // 立即开始第一次同步
     this.syncSingleWateringRecord(recordId)
   }
 
   /**
-   * 获取失败的同步记录数量
+   * 执行完整的数据同步
    */
-  getFailedSyncCount(): number {
+  async performFullSync() {
     const store = useAppStore.getState()
     const { plants, wateringRecords } = store
 
-    let failedCount = 0
-
-    // 统计失败的植物同步
-    plants.forEach(plant => {
-      const status = store.getSyncStatus(plant.id, 'plant')
-      if (status.isFailed) {
-        failedCount++
+    console.log('开始执行完整数据同步...')
+    
+    try {
+      // 同步植物数据 - 逐个从服务器获取最新状态
+      for (const plant of plants) {
+        try {
+          await this.syncSinglePlant(plant.id)
+        } catch (error) {
+          console.warn(`植物 ${plant.id} 同步失败:`, error)
+        }
       }
-    })
-
-    // 统计失败的浇水记录同步
-    wateringRecords.forEach(record => {
-      const status = store.getSyncStatus(record.id, 'watering')
-      if (status.isFailed) {
-        failedCount++
+      
+      // 同步浇水记录 - 逐个从服务器获取最新状态
+      for (const record of wateringRecords) {
+        try {
+          await this.syncSingleWateringRecord(record.id)
+        } catch (error) {
+          console.warn(`浇水记录 ${record.id} 同步失败:`, error)
+        }
       }
-    })
-
-    return failedCount
+      
+      // 更新最后同步时间
+      store.setLastGlobalSync(Date.now())
+      
+      console.log('完整数据同步完成')
+      
+    } catch (error) {
+      console.error('完整数据同步失败:', error)
+      throw error
+    }
   }
 
   /**
-   * 检查是否有正在进行的同步
+   * 处理网络状态变化
    */
-  hasPendingSync(): boolean {
+  handleNetworkChange(isOnline: boolean) {
     const store = useAppStore.getState()
-    const { plants, wateringRecords } = store
+    store.setOnlineStatus(isOnline)
+    
+    if (isOnline) {
+      console.log('网络已连接，开始同步数据...')
+      // 网络恢复时自动同步
+      setTimeout(() => {
+        this.performFullSync().catch(error => {
+          console.error('网络恢复后同步失败:', error)
+        })
+      }, 1000) // 延迟1秒确保网络稳定
+    } else {
+      console.log('网络已断开')
+    }
+  }
 
-    // 检查植物同步状态
-    const hasPlantSync = plants.some(plant => {
-      const status = store.getSyncStatus(plant.id, 'plant')
-      return status.isSyncing
-    })
-
-    // 检查浇水记录同步状态
-    const hasWateringSync = wateringRecords.some(record => {
-      const status = store.getSyncStatus(record.id, 'watering')
-      return status.isSyncing
-    })
-
-    return hasPlantSync || hasWateringSync
+  /**
+   * 手动触发同步
+   */
+  async manualSync() {
+    console.log('手动触发数据同步...')
+    await this.performFullSync()
   }
 
   /**
@@ -392,10 +313,8 @@ class SyncService {
     const { wateringRecords } = store
 
     wateringRecords.forEach(record => {
-      const status = store.getSyncStatus(record.id, 'watering')
-      
-      // 如果记录不完整且未失败，重新启动同步
-      if (!status.isComplete && !status.isFailed && !this.isWateringRecordComplete(record)) {
+      // 如果记录不完整，重新启动同步
+      if (!this.isWateringRecordComplete(record)) {
         console.log(`重新启动浇水记录同步: ${record.id}`)
         this.startWateringRecordSync(record.id)
       }
@@ -410,7 +329,5 @@ export const syncService = new SyncService()
 export const syncSinglePlant = syncService.syncSinglePlant.bind(syncService)
 export const syncSingleWateringRecord = syncService.syncSingleWateringRecord.bind(syncService)
 export const startWateringRecordSync = syncService.startWateringRecordSync.bind(syncService)
-export const getFailedSyncCount = syncService.getFailedSyncCount.bind(syncService)
-export const hasPendingSync = syncService.hasPendingSync.bind(syncService)
 export const restartPendingSyncs = syncService.restartPendingSyncs.bind(syncService)
 export const cleanup = syncService.cleanup.bind(syncService)
