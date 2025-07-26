@@ -54,7 +54,7 @@ function CreatePlantRoute() {
 const router = createHashRouter([
   {
     path: '/',
-    element: <DebugPage />
+    element: <RootRoute />
   },
   {
     path: '/createplant',
@@ -62,7 +62,7 @@ const router = createHashRouter([
   },
   {
     path: '/debug',
-    element: <RootRoute />
+    element: <DebugPage />
   }
 ]);
 
