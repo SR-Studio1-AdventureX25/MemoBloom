@@ -23,20 +23,8 @@ class SyncService {
       record.emotionTags &&
       record.emotionTags.length > 0 &&
       record.emotionIntensity !== undefined &&
-      record.coreEvent
-    )
-  }
-
-  /**
-   * 检查植物记录字段是否完整
-   */
-  private isPlantRecordComplete(plant: Plant): boolean {
-    return !!(
-      plant.currentGrowthStage &&
-      plant.growthValue !== undefined &&
-      plant.personalityTags &&
-      plant.personalityTags.length > 0 &&
-      plant.lastWateringTime
+      record.coreEvent &&
+      record.growthIncrement !== undefined
     )
   }
 
@@ -262,13 +250,10 @@ class SyncService {
         console.log(`植物数据已更新: ${plantId}`)
       }
 
-      // 检查字段是否完整
-      const isComplete = this.isPlantRecordComplete(serverPlant)
-      
-      // 更新同步状态
+      // 植物记录不需要检查字段完整性，直接标记为完成
       store.setSyncStatus(plantId, 'plant', {
         isSyncing: false,
-        isComplete,
+        isComplete: true,
         lastSync: Date.now(),
         error: undefined,
         isFailed: false
