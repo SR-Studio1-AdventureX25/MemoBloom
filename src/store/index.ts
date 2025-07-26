@@ -249,7 +249,6 @@ export const useAppStore = create<AppStore>()(
             return null
           }
           
-          // 获取历史浇水记录（排除今日记录）
           const today = new Date().toDateString()
           console.log('- today:', today)
           
@@ -257,17 +256,8 @@ export const useAppStore = create<AppStore>()(
           const plantRecords = wateringRecords.filter(record => record.plantId === currentPlantId)
           console.log('- plantRecords:', plantRecords.length, plantRecords)
           
-          // 第二步：排除今日记录
-          const nonTodayRecords = plantRecords.filter(record => {
-            const recordDate = new Date(record.wateringTime).toDateString()
-            const isNotToday = recordDate !== today
-            console.log(`  - record ${record.id}: date=${recordDate}, isNotToday=${isNotToday}`)
-            return isNotToday
-          })
-          console.log('- nonTodayRecords:', nonTodayRecords.length, nonTodayRecords)
-          
-          // 第三步：确保有记忆内容和情感标签
-          const historicalRecords = nonTodayRecords.filter(record => {
+          // 第二步：确保有记忆内容和情感标签（包含当天记录）
+          const availableRecords = plantRecords.filter(record => {
             const hasMemoryText = !!record.memoryText
             const hasEmotionTags = !!(record.emotionTags && record.emotionTags.length > 0)
             console.log(`  - record ${record.id}: hasMemoryText=${hasMemoryText}, hasEmotionTags=${hasEmotionTags}`)
@@ -276,15 +266,15 @@ export const useAppStore = create<AppStore>()(
             return hasMemoryText && hasEmotionTags
           })
           
-          console.log('- historicalRecords:', historicalRecords.length, historicalRecords)
+          console.log('- availableRecords:', availableRecords.length, availableRecords)
           
-          if (historicalRecords.length === 0) {
-            console.log('- performMemoryDraw: null (no historical records)')
+          if (availableRecords.length === 0) {
+            console.log('- performMemoryDraw: null (no available records)')
             return null
           }
           
           // 按情感强度加权随机选择
-          const weightedRecords = historicalRecords.map(record => {
+          const weightedRecords = availableRecords.map(record => {
             const weight = (record.emotionIntensity || 1) * Math.random()
             console.log(`  - record ${record.id}: emotionIntensity=${record.emotionIntensity}, weight=${weight}`)
             return {

@@ -74,27 +74,18 @@ export const BloomDrawSystem = memo<BloomDrawSystemProps>(({ className = "" }) =
     return todayRecords.length > 0
   })()
   
-  // 获取历史记录数量
-  const historicalRecordsCount = (() => {
+  // 获取可抽取记录数量
+  const availableRecordsCount = (() => {
     if (!currentPlantId) {
-      console.log('- historicalRecordsCount: 0 (no currentPlantId)')
+      console.log('- availableRecordsCount: 0 (no currentPlantId)')
       return 0
     }
-    const today = new Date().toDateString()
-    console.log('- filtering historical records...')
+    console.log('- filtering available records...')
     
     const allPlantRecords = wateringRecords.filter(record => record.plantId === currentPlantId)
     console.log('- allPlantRecords:', allPlantRecords.length, allPlantRecords)
     
-    const nonTodayRecords = allPlantRecords.filter(record => {
-      const recordDate = new Date(record.wateringTime).toDateString()
-      const isNotToday = recordDate !== today
-      console.log(`  - record ${record.id}: date=${recordDate}, isNotToday=${isNotToday}`)
-      return isNotToday
-    })
-    console.log('- nonTodayRecords:', nonTodayRecords.length, nonTodayRecords)
-    
-    const recordsWithMemory = nonTodayRecords.filter(record => {
+    const recordsWithMemory = allPlantRecords.filter(record => {
       const hasMemoryText = !!record.memoryText
       const hasEmotionTags = !!(record.emotionTags && record.emotionTags.length > 0)
       console.log(`  - record ${record.id}: hasMemoryText=${hasMemoryText}, hasEmotionTags=${hasEmotionTags}`)
@@ -107,7 +98,7 @@ export const BloomDrawSystem = memo<BloomDrawSystemProps>(({ className = "" }) =
     return recordsWithMemory.length
   })()
   
-  console.log('- Final historicalRecordsCount:', historicalRecordsCount)
+  console.log('- Final availableRecordsCount:', availableRecordsCount)
 
   // 处理花苞点击
   const handleBudClick = useCallback((budIndex: number) => {
@@ -127,10 +118,10 @@ export const BloomDrawSystem = memo<BloomDrawSystemProps>(({ className = "" }) =
           type: 'info',
           read: false
         })
-      } else if (historicalRecordsCount === 0) {
+      } else if (availableRecordsCount === 0) {
         addNotification({
-          title: '暂无历史记忆',
-          message: '还没有足够的历史记忆可以抽取',
+          title: '暂无可抽取记忆',
+          message: '还没有足够的记忆可以抽取',
           type: 'info',
           read: false
         })
@@ -173,7 +164,7 @@ export const BloomDrawSystem = memo<BloomDrawSystemProps>(({ className = "" }) =
       type: 'success',
       read: false
     })
-  }, [canDraw, hasWateredToday, remainingDraws, historicalRecordsCount, performMemoryDraw, addNotification])
+  }, [canDraw, hasWateredToday, remainingDraws, availableRecordsCount, performMemoryDraw, addNotification])
 
   // 关闭模态框
   const handleCloseModal = useCallback(() => {
@@ -189,61 +180,20 @@ export const BloomDrawSystem = memo<BloomDrawSystemProps>(({ className = "" }) =
 
   return (
     <div className={`bloom-draw-system ${className}`}>
-      {/* 状态提示 */}
-      <div className="text-center mb-6">
-        <div className="text-white/90 text-lg font-bold mb-2" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
-          🌸 开花记忆抽取 🌸
-        </div>
-        
-        {!hasWateredToday ? (
-          <div className="text-yellow-300 text-sm" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
-            请先给植物浇水，才能抽取记忆
-          </div>
-        ) : remainingDraws <= 0 ? (
-          <div className="text-orange-300 text-sm" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
-            今日抽取次数已用完，明天再来吧
-          </div>
-        ) : historicalRecordsCount === 0 ? (
-          <div className="text-blue-300 text-sm" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
-            暂无历史记忆可以抽取
-          </div>
-        ) : (
-          <div className="text-green-300 text-sm" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
-            今日还可抽取 {remainingDraws} 次记忆
-          </div>
-        )}
-      </div>
-
       {/* 三个花苞 */}
       <div className="flex justify-center items-center space-x-8">
         {[0, 1, 2].map((index) => (
           <div
             key={index}
             ref={(el) => { budRefs.current[index] = el }}
-            className="flex flex-col items-center"
           >
             <BloomBud
               index={index}
               onClick={() => handleBudClick(index)}
               disabled={!canDraw || index >= remainingDraws}
             />
-            
-            {/* 花苞状态指示 */}
-            <div className="mt-2 text-xs text-white/60 text-center">
-              {index < remainingDraws ? (
-                canDraw ? '可抽取' : '不可用'
-              ) : (
-                '已用完'
-              )}
-            </div>
           </div>
         ))}
-      </div>
-
-      {/* 记忆统计 */}
-      <div className="text-center mt-6 text-white/70 text-sm" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}>
-        <div>历史记忆: {historicalRecordsCount} 条</div>
-        <div>今日已抽取: {todayDrawCount}/3 次</div>
       </div>
 
       {/* 记忆抽取弹窗 */}

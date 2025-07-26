@@ -116,12 +116,6 @@ export const BloomBud = memo<BloomBudProps>(({ index, onClick, disabled = false 
         />
       )}
       
-      {/* 点击提示 */}
-      {!disabled && (
-        <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-white/80 text-xs text-center whitespace-nowrap">
-          点击抽取记忆
-        </div>
-      )}
     </div>
   )
 })
