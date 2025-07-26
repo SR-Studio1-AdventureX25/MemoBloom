@@ -5,7 +5,8 @@
 <a href="https://app.fossa.com/projects/git%2Bgithub.com%2FSR-Studio1-AdventureX25%2FMemoBloom?ref=badge_shield&issueType=license" alt="FOSSA Status"><img src="https://app.fossa.com/api/projects/git%2Bgithub.com%2FSR-Studio1-AdventureX25%2FMemoBloom.svg?type=shield&issueType=license"/></a>
 <img src="https://img.shields.io/badge/Language-TypeScript-3178c6" alt="Language">
 <img src="https://img.shields.io/static/v1?label=LICENSE&message=MIT&color=coral" alt="Badge">
-<img alt="GitLab Stars" src="https://img.shields.io/github/stars/SR-Studio1-AdventureX25/MemoBloom?label=Stars">
+![GitHub Repo stars](https://img.shields.io/github/stars/SR-Studio1-AdventureX25/MemoBloom)
+
 
 [**「 Plants possess the art of silence, where memories find their shelter 」**](https://app.mb.sr-studio.cn)<br/>
 A nurturing web game about plant growth and memories<br/>
