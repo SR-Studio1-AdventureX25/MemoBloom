@@ -123,7 +123,7 @@ interface BackendPlantResponse {
   detail?: {
     [key: string]: unknown
     '植物品种'?: string
-    '当前生长阶段'?: string
+    '当前生长阶段'?: {type: number; value: string}
     '成长值'?: {type: number; value: number[]}
     '上次浇水时间'?: {type: number; value: number[]}
     '用户近期状况'?: {text: string; type: string}[]
@@ -208,7 +208,7 @@ const mapBackendPlantToFrontend = (backendData: BackendPlantResponse): Plant => 
   return {
     id: backendData.record_id,
     variety: mapChineseToEnglishVariety(detail['植物品种'] || ''),
-    currentGrowthStage: mapChineseToEnglishGrowthStage(detail['当前生长阶段'] || ''),
+    currentGrowthStage: mapChineseToEnglishGrowthStage(detail['当前生长阶段']?.['value'][0] || ''),
     growthValue: detail['成长值']?.['value'][0] || 0,
     lastWateringTime: detail['上次浇水时间']?.['value'][0] || 0,
     userRecentStatus: detail['用户近期状况']?.[0].text || '',
