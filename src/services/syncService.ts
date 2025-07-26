@@ -4,7 +4,7 @@ import type { Plant, WateringRecord } from '@/types'
 
 // 同步配置
 const SYNC_CONFIG = {
-  WATERING_RETRY_INTERVAL: 60 * 1000, // 1分钟重试间隔
+  WATERING_RETRY_INTERVAL: 10 * 1000, // 10秒钟重试间隔
   MAX_RETRY_COUNT: 10,                 // 最大重试次数
 } as const
 
