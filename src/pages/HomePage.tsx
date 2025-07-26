@@ -136,7 +136,7 @@ interface MicrophoneContainerProps {
   plantId: string
   currentGrowthValue: number
   onWateringComplete: (success: boolean, message?: string, emotion?: 'happy' | 'sad') => void
-  onRecordingStateChange: (isRecording: boolean) => void
+  onRecordingStateChange?: (isRecording: boolean) => void
 }
 
 const MicrophoneContainer = memo<MicrophoneContainerProps>(({ 
@@ -157,7 +157,11 @@ const MicrophoneContainer = memo<MicrophoneContainerProps>(({
 
 MicrophoneContainer.displayName = 'MicrophoneContainer'
 
-export default function HomePage() {
+interface HomePageProps {
+  onRecordingStateChange?: (isRecording: boolean) => void
+}
+
+export default function HomePage({ onRecordingStateChange }: HomePageProps = {}) {
   const { plants, currentPlantId, isOnline, addNotification } = useAppStore()
   const [isLoading, setIsLoading] = useState(true)
   const [isRecording, setIsRecording] = useState(false)
@@ -311,7 +315,10 @@ export default function HomePage() {
           plantId={currentPlant.id}
           currentGrowthValue={currentPlant.growthValue}
           onWateringComplete={handleWateringComplete}
-          onRecordingStateChange={setIsRecording}
+          onRecordingStateChange={(isRecording) => {
+            setIsRecording(isRecording)
+            onRecordingStateChange?.(isRecording)
+          }}
         />
 
         {/* NFT状态指示器 */}

@@ -11,7 +11,11 @@ interface TouchInfo {
   currentY: number
 }
 
-const PageContainer = () => {
+interface PageContainerProps {
+  onRecordingStateChange?: (isRecording: boolean) => void
+}
+
+const PageContainer = ({ onRecordingStateChange }: PageContainerProps) => {
   const [currentPage, setCurrentPage] = useState<CurrentPage>('home')
   const [animationProgress, setAnimationProgress] = useState(0) // 0-2, 0是home，1是library，2是wallet
   const [isAnimating, setIsAnimating] = useState(false)
@@ -401,7 +405,7 @@ const PageContainer = () => {
         
         <div className="relative w-full h-full bg-black overflow-hidden border border-white/10"
              style={{ borderRadius: 'inherit' }}>
-          <HomePage />
+          <HomePage onRecordingStateChange={onRecordingStateChange} />
         </div>
       </div>
 
