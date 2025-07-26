@@ -165,7 +165,7 @@ interface HomePageProps {
 }
 
 export default function HomePage({ onRecordingStateChange }: HomePageProps = {}) {
-  const { plants, currentPlantId, isOnline, addNotification, addFavoritePlant, setCurrentPlantId } = useAppStore()
+  const { plants, currentPlantId, isOnline, addNotification, addFavoritePlant } = useAppStore()
   const [isLoading, setIsLoading] = useState(true)
   const [isRecording, setIsRecording] = useState(false)
   const [aiMessage, setAiMessage] = useState<string>('') // AI生成的消息
@@ -266,12 +266,11 @@ export default function HomePage({ onRecordingStateChange }: HomePageProps = {})
     setShowCompletionModal(false)
     setCompletedPlant(null)
     
-    // 清空当前植物ID，强制玩家进入创建植物界面
-    setCurrentPlantId(null)
-    
-    // 导航到创建植物页面
-    navigate('/createplant', { replace: true })
-  }, [setCurrentPlantId, navigate])
+    // 🔥 修复：不再自动清空植物ID和跳转
+    // 让用户继续查看完成的植物，或者手动选择创建新植物
+    // setCurrentPlantId(null)
+    // navigate('/createplant', { replace: true })
+  }, [])
 
   // 浇水完成回调 - 使用 useCallback 优化
   const handleWateringComplete = useCallback((success: boolean, message?: string, emotion?: 'happy' | 'sad') => {

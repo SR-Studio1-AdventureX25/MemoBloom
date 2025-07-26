@@ -1,4 +1,5 @@
 import { memo, useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import type { Plant } from "@/types";
 
 // 植物完成成就弹窗组件 - 游戏成就风格
@@ -11,6 +12,7 @@ export const PlantCompletionModal = memo(function ({
   isOpen: boolean, 
   onClose: () => void
 }) {
+  const navigate = useNavigate();
   const [showContent, setShowContent] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -65,7 +67,6 @@ export const PlantCompletionModal = memo(function ({
       className={`fixed inset-0 z-50 transition-opacity duration-500 ${
         modalVisible && !isClosing ? 'opacity-100' : 'opacity-0'
       } ${isOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}
-      onClick={handleClose}
       style={{ 
         fontFamily: '"DingTalk JinBuTi", serif',
         backgroundColor: 'rgba(0, 0, 0, 0.7)'
@@ -164,7 +165,7 @@ export const PlantCompletionModal = memo(function ({
             </div>
 
             {/* 收藏提示 */}
-            <div className="text-center">
+            <div className="text-center mb-8">
               <div className="text-green-200 text-lg font-bold mb-2" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
                 📚 收藏状态
               </div>
@@ -172,11 +173,40 @@ export const PlantCompletionModal = memo(function ({
                 已自动加入收藏夹
               </div>
             </div>
+
+            {/* 操作按钮 */}
+            <div className="flex flex-col gap-4">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleClose();
+                }}
+                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
+                style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}
+              >
+                🌱 继续养护这株植物
+              </button>
+              
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleClose();
+                  // 延迟跳转，等待弹窗关闭动画完成
+                  setTimeout(() => {
+                    navigate('/createplant');
+                  }, 700);
+                }}
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
+                style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}
+              >
+                ✨ 创建新的植物
+              </button>
+            </div>
           </div>
           
-          {/* 关闭提示 */}
-          <div className="text-green-400 text-sm mt-8 animate-pulse" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
-            点击任意位置关闭
+          {/* 提示文字 */}
+          <div className="text-green-400 text-sm mt-6 text-center animate-pulse" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
+            选择你的下一步行动
           </div>
         </div>
       )}

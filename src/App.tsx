@@ -13,11 +13,20 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 
 // 根路由组件 - 检查是否有当前植物
 function RootRoute({ onRecordingStateChange }: { onRecordingStateChange: (isRecording: boolean) => void }) {
-  const { currentPlantId, plants } = useAppStore()
+  const { currentPlantId, plants, setCurrentPlantId } = useAppStore()
   
-  // 如果没有当前植物ID或者植物列表为空，导航到创建植物页面
-  if (!currentPlantId || plants.length === 0) {
+  // 🔥 修复：更安全的路由逻辑
+  // 只有在真的没有植物时才跳转到创建页面
+  if (plants.length === 0) {
     return <Navigate to="/createplant" replace />
+  }
+  
+  // 如果有植物但没有选中的，自动选择第一个
+  if (!currentPlantId) {
+    const firstPlant = plants[0]
+    if (firstPlant) {
+      setCurrentPlantId(firstPlant.id)
+    }
   }
   
   // 有植物则显示PageContainer（包含HomePage和DigitalLibrary）
