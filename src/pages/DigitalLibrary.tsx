@@ -1,4 +1,4 @@
-import { DigitalCalendar, AudioDetailModal, LibraryGrid, useDigitalLibrary } from "@/components/DigitalLibrary";
+import { DigitalCalendar, AudioDetailModal, PlantDetailModal, LibraryGrid, useDigitalLibrary } from "@/components/DigitalLibrary";
 
 export default function DigitalLibraryPage() {
   const {
@@ -7,11 +7,18 @@ export default function DigitalLibraryPage() {
     scrollLeft,
     scrollAreaRef,
     handleScroll,
+    // 音频模态框相关
     selectedAudio,
-    isModalOpen,
-    animationData,
+    isAudioModalOpen,
+    audioAnimationData,
     handleAudioClick,
-    closeModal
+    closeAudioModal,
+    // 植物模态框相关
+    selectedPlant,
+    isPlantModalOpen,
+    plantAnimationData,
+    handlePlantClick,
+    closePlantModal
   } = useDigitalLibrary();
 
   return (
@@ -31,6 +38,7 @@ export default function DigitalLibraryPage() {
           sortedPlants={sortedPlants}
           sortedAudios={sortedAudios}
           onAudioClick={handleAudioClick}
+          onPlantClick={handlePlantClick}
         />
       </div>
 
@@ -41,9 +49,17 @@ export default function DigitalLibraryPage() {
       {/* 音频详情模态框 */}
       <AudioDetailModal 
         audioRecord={selectedAudio}
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        animationData={animationData}
+        isOpen={isAudioModalOpen}
+        onClose={closeAudioModal}
+        animationData={audioAnimationData}
+      />
+      
+      {/* 植物详情模态框 */}
+      <PlantDetailModal 
+        plant={selectedPlant}
+        isOpen={isPlantModalOpen}
+        onClose={closePlantModal}
+        animationData={plantAnimationData}
       />
     </div>
   )

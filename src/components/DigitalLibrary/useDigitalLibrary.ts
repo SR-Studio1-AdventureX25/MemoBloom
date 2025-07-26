@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import type { WateringRecord } from "@/types";
+import type { WateringRecord, Plant } from "@/types";
 import { useAppStore } from "@/store";
 
 export const useDigitalLibrary = () => {
@@ -8,8 +8,17 @@ export const useDigitalLibrary = () => {
   
   // 音频详情模态框状态
   const [selectedAudio, setSelectedAudio] = useState<WateringRecord | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [animationData, setAnimationData] = useState<{
+  const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
+  const [audioAnimationData, setAudioAnimationData] = useState<{
+    startX: number,
+    startY: number,
+    startSize: number
+  } | null>(null);
+  
+  // 植物详情模态框状态
+  const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
+  const [isPlantModalOpen, setIsPlantModalOpen] = useState(false);
+  const [plantAnimationData, setPlantAnimationData] = useState<{
     startX: number,
     startY: number,
     startSize: number
@@ -81,7 +90,7 @@ export const useDigitalLibrary = () => {
     const imgElement = target.querySelector('img');
     if (imgElement) {
       const imgRect = imgElement.getBoundingClientRect();
-      setAnimationData({
+      setAudioAnimationData({
         startX: imgRect.left,
         startY: imgRect.top,
         startSize: imgRect.width
@@ -91,7 +100,7 @@ export const useDigitalLibrary = () => {
       const startX = rect.left + boxPadding + offset.x + (boxSize - discSize) / 2;
       const startY = rect.top + boxPadding + offset.y + (boxSize - discSize) / 2;
       
-      setAnimationData({
+      setAudioAnimationData({
         startX,
         startY,
         startSize: discSize
@@ -99,14 +108,67 @@ export const useDigitalLibrary = () => {
     }
     
     setSelectedAudio(audioRecord);
-    setIsModalOpen(true);
+    setIsAudioModalOpen(true);
   };
 
-  // 关闭模态框
-  const closeModal = () => {
-    setIsModalOpen(false);
+  // 处理植物点击
+  const handlePlantClick = (plant: Plant, event: React.MouseEvent) => {
+    const target = event.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    
+    // 找到对应的offset - 通过查找匹配的plant
+    let offset = { x: 0, y: 0 };
+    const plantIndex = sortedPlants.findIndex(p => p.id === plant.id);
+    if (plantIndex !== -1) {
+      // 计算在第一行中的位置索引 - PlantBox在第一行的偶数位（索引0,2,4...）
+      const positionInRow = Math.floor(plantIndex / 5); // 每5个plant循环一次
+      const colIndex = positionInRow * 2; // 偶数列：0, 2, 4, 6, 8
+      const offsetKey = `row1-${colIndex}`;
+      offset = boxOffsets[offsetKey] || { x: 0, y: 0 };
+    }
+    
+    // 找到标本图片元素的实际位置
+    const imgElement = target.querySelector('img');
+    if (imgElement) {
+      const imgRect = imgElement.getBoundingClientRect();
+      setPlantAnimationData({
+        startX: imgRect.left,
+        startY: imgRect.top,
+        startSize: imgRect.width
+      });
+    } else {
+      // 备用计算方法
+      const boxPadding = 24; // p-6 = 24px
+      const boxSize = 128; // w-32 h-32 = 128px
+      const specimenScale = 0.85;
+      const specimenSize = boxSize * specimenScale;
+      
+      const startX = rect.left + boxPadding + offset.x + (boxSize - specimenSize) / 2;
+      const startY = rect.top + boxPadding + offset.y + (boxSize - specimenSize) / 2;
+      
+      setPlantAnimationData({
+        startX,
+        startY,
+        startSize: specimenSize
+      });
+    }
+    
+    setSelectedPlant(plant);
+    setIsPlantModalOpen(true);
+  };
+
+  // 关闭音频模态框
+  const closeAudioModal = () => {
+    setIsAudioModalOpen(false);
     setSelectedAudio(null);
-    setAnimationData(null);
+    setAudioAnimationData(null);
+  };
+
+  // 关闭植物模态框
+  const closePlantModal = () => {
+    setIsPlantModalOpen(false);
+    setSelectedPlant(null);
+    setPlantAnimationData(null);
   };
 
   return {
@@ -120,11 +182,18 @@ export const useDigitalLibrary = () => {
     scrollAreaRef,
     handleScroll,
     
-    // 模态框相关
+    // 音频模态框相关
     selectedAudio,
-    isModalOpen,
-    animationData,
+    isAudioModalOpen,
+    audioAnimationData,
     handleAudioClick,
-    closeModal
+    closeAudioModal,
+    
+    // 植物模态框相关
+    selectedPlant,
+    isPlantModalOpen,
+    plantAnimationData,
+    handlePlantClick,
+    closePlantModal
   };
 };

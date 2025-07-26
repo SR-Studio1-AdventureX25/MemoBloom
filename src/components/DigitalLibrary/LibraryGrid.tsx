@@ -6,12 +6,14 @@ interface LibraryGridProps {
   sortedPlants: Plant[];
   sortedAudios: WateringRecord[];
   onAudioClick: (audioRecord: WateringRecord, event: React.MouseEvent) => void;
+  onPlantClick: (plant: Plant, event: React.MouseEvent) => void;
 }
 
 export const LibraryGrid = memo(function LibraryGrid({
   sortedPlants,
   sortedAudios,
-  onAudioClick
+  onAudioClick,
+  onPlantClick
 }: LibraryGridProps) {
   // 判断是否有数据
   const hasData = sortedPlants.length > 0 || sortedAudios.length > 0;
@@ -65,6 +67,7 @@ export const LibraryGrid = memo(function LibraryGrid({
               <PlantBox 
                 plant={sortedPlants[Math.floor(i/2) % sortedPlants.length]} 
                 offset={{x: 0, y: 0}}
+                onClick={(event) => onPlantClick(sortedPlants[Math.floor(i/2) % sortedPlants.length], event)}
               />
             ) : (
               // 其他位置留空
