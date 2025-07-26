@@ -27,73 +27,48 @@ export const BloomDrawSystem = memo<BloomDrawSystemProps>(({ className = "" }) =
   // 获取当前植物
   const currentPlant = currentPlantId ? plants.find(p => p.id === currentPlantId) : null
   
-  console.log('🌸 BloomDrawSystem Debug Info:')
-  console.log('- currentPlantId:', currentPlantId)
-  console.log('- currentPlant:', currentPlant)
-  console.log('- plants count:', plants.length)
-  console.log('- wateringRecords count:', wateringRecords.length)
-  console.log('- all wateringRecords:', wateringRecords)
-  
   // 检查是否可以显示抽取系统
   const canShowDrawSystem = currentPlant?.currentGrowthStage === 'flowering'
-  console.log('- canShowDrawSystem:', canShowDrawSystem, '(plant stage:', currentPlant?.currentGrowthStage, ')')
   
   // 检查是否可以抽取
   const canDraw = checkCanDrawMemory()
-  console.log('- canDraw:', canDraw)
   
   // 获取今日抽取次数
   const todayDrawCount = getTodayDrawCount()
   const remainingDraws = Math.max(0, 3 - todayDrawCount)
-  console.log('- todayDrawCount:', todayDrawCount)
-  console.log('- remainingDraws:', remainingDraws)
   
   // 检查今日是否已浇水
   const hasWateredToday = (() => {
     if (!currentPlantId) {
-      console.log('- hasWateredToday: false (no currentPlantId)')
       return false
     }
     const today = new Date().toDateString()
-    console.log('- today date string:', today)
     
     const todayRecords = wateringRecords.filter(record => {
       const recordDate = new Date(record.wateringTime).toDateString()
       const isToday = record.plantId === currentPlantId && recordDate === today
-      console.log(`  - record ${record.id}: plantId=${record.plantId}, date=${recordDate}, isToday=${isToday}`)
       return isToday
     })
-    
-    console.log('- todayRecords:', todayRecords)
-    console.log('- hasWateredToday:', todayRecords.length > 0)
     return todayRecords.length > 0
   })()
   
   // 获取可抽取记录数量
   const availableRecordsCount = (() => {
     if (!currentPlantId) {
-      console.log('- availableRecordsCount: 0 (no currentPlantId)')
       return 0
     }
-    console.log('- filtering available records...')
     
     const allPlantRecords = wateringRecords.filter(record => record.plantId === currentPlantId)
-    console.log('- allPlantRecords:', allPlantRecords.length, allPlantRecords)
     
     const recordsWithMemory = allPlantRecords.filter(record => {
       const hasMemoryText = !!record.memoryText
       const hasEmotionTags = !!(record.emotionTags && record.emotionTags.length > 0)
-      console.log(`  - record ${record.id}: hasMemoryText=${hasMemoryText}, hasEmotionTags=${hasEmotionTags}`)
-      console.log(`    - memoryText:`, record.memoryText)
-      console.log(`    - emotionTags:`, record.emotionTags)
       return hasMemoryText && hasEmotionTags
     })
-    console.log('- recordsWithMemory:', recordsWithMemory.length, recordsWithMemory)
     
     return recordsWithMemory.length
   })()
   
-  console.log('- Final availableRecordsCount:', availableRecordsCount)
 
   // 处理花苞点击
   const handleBudClick = useCallback(() => {
