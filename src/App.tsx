@@ -54,33 +54,19 @@ function CreatePlantRoute() {
 function App() {
   const { isAppReady } = useAppInitialization()
   const playerRef = useRef<HTMLAudioElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [userInteracted, setUserInteracted] = useState(false);
-  const [currentVolume, setCurrentVolume] = useState(1.0);
-  const [isRecordingActive, setIsRecordingActive] = useState(false);
+  const [isRecordingActive, setIsRecordingActive] = useState(false); // eslint-disable-line @typescript-eslint/no-unused-vars
   const volumeAnimationRef = useRef<number | null>(null);
 
   const playAudio = useCallback(async () => {
     if (playerRef.current) {
       try {
         await playerRef.current.play();
-        setIsPlaying(true);
       } catch (error) {
         console.log('音频播放失败，可能是浏览器政策限制:', error);
       }
     }
   }, []);
-
-  const toggleAudio = useCallback(async () => {
-    if (!playerRef.current) return;
-    
-    if (isPlaying) {
-      playerRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      await playAudio();
-    }
-  }, [isPlaying, playAudio]);
 
   // 平滑调整音量
   const fadeVolume = useCallback((targetVolume: number, duration: number = 500) => {
@@ -104,7 +90,6 @@ function App() {
       
       if (playerRef.current) {
         playerRef.current.volume = newVolume;
-        setCurrentVolume(newVolume);
       }
 
       if (progress < 1) {
@@ -185,37 +170,7 @@ function App() {
         src='/bgm.mp3' 
         loop 
         preload="auto"
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
       />
-      
-      {/* 音频控制按钮和音量指示器 */}
-      <div className="fixed top-4 right-4 z-50 flex items-center space-x-2">
-        {/* 音量指示器 */}
-        {isPlaying && (
-          <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2 text-white text-sm flex items-center space-x-2">
-            <span>🎵</span>
-            <div className="w-16 h-2 bg-gray-600 rounded-full overflow-hidden">
-              <div 
-                className={`h-full rounded-full transition-all duration-300 ${
-                  isRecordingActive ? 'bg-orange-400' : 'bg-green-400'
-                }`}
-                style={{ width: `${currentVolume * 100}%` }}
-              />
-            </div>
-            <span className="text-xs">{Math.round(currentVolume * 100)}%</span>
-          </div>
-        )}
-        
-        {/* 音频控制按钮 */}
-        <button
-          onClick={toggleAudio}
-          className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-full shadow-lg transition-colors"
-          title={isPlaying ? '暂停音乐' : '播放音乐'}
-        >
-          {isPlaying ? '🔊' : '🔇'}
-        </button>
-      </div>
       
       {/* 只有当应用准备好时才渲染路由 */}
       {isAppReady && <RouterProvider router={router} />}
