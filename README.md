@@ -1,15 +1,74 @@
-# React + TypeScript + Vite
+<div align="center">
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# <image src="https://mb.sr-studio.cn/img/memobloom-logo.png" height="45"/>  MemoBloom
+<a href="https://app.fossa.com/projects/git%2Bgithub.com%2FSRInternet-Studio%2FJianer_QQ_bot?ref=badge_shield&issueType=security" alt="FOSSA Status"><img src="https://app.fossa.com/api/projects/git%2Bgithub.com%2FSRInternet-Studio%2FJianer_QQ_bot.svg?type=shield&issueType=security"/></a>
+<img src="https://img.shields.io/badge/Language-TypeScript-3178c6" alt="Language">
+<img src="https://img.shields.io/static/v1?label=LICENSE&message=MIT&color=coral" alt="Badge">
+<img alt="GitLab Stars" src="https://img.shields.io/github/stars/SR-Studio1-AdventureX25/MemoBloom?label=Stars">
 
-Currently, two official plugins are available:
+[**「 Plants possess the art of silence, where memories find their shelter 」**](app.mb.sr-studio.cn)<br/>
+A nurturing web game about plant growth and memories<br/>
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+#### [Join the QQ group](https://qm.qq.com/q/f3QGDkdp6M)｜[切换到简体中文](CN_README.md)
 
-## Expanding the ESLint configuration
+#### [🌐 App Center ](https://app.sr-studio.cn)｜[💖 Sponsor ](https://afdian.com/a/srinternet)｜[📝 Feedback](https://github.com/SR-Studio1-AdventureX25/MemoBloom/issues)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+##### [Follow us on Bilibili →](https://space.bilibili.com/1969160969)
+
+</div>
+
+## Features
+
+### Digital Library
+- Audio memory management
+- Visual calendar view
+- Categorized storage system
+
+### Plant Growth System
+- State-based plant growth animations
+- Emotion visualization (Happy/Normal/Sad)
+- Multi-stage life cycle (Seed/Sprout/Mature/Flowering)
+
+## Technology Stack
+- Framework: React 18 + TypeScript
+- Build Tool: Vite
+- State Management: Jotai/Zustand
+- Styling: CSS Modules
+- Audio: Web Audio API
+- Video: HTML5 Video
+- PWA Support
+
+## Installation
+
+### Prerequisites
+- Node.js 18+
+- Bun or npm/yarn
+
+### Steps
+1. Clone repo
+```bash
+git clone [repo-url]
+cd MemoBloom
+```
+
+2. Install dependencies
+```bash
+bun install
+# or
+npm install
+```
+
+3. Run dev server
+```bash
+bun dev
+# or
+npm run dev
+```
+
+## Development Configuration
+
+### ESLint Configuration
+For production applications, enable type-aware lint rules:
 
 ```js
 export default tseslint.config([
@@ -17,53 +76,23 @@ export default tseslint.config([
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
       ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
       ...tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
     ],
     languageOptions: {
       parserOptions: {
         project: ['./tsconfig.node.json', './tsconfig.app.json'],
         tsconfigRootDir: import.meta.dirname,
       },
-      // other options...
     },
   },
 ])
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Deployment
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Refer to [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed instructions.
 
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## License
+
+MIT License
