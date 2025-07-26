@@ -7,7 +7,7 @@
 <img src="https://img.shields.io/static/v1?label=LICENSE&message=GPL-3.0&color=coral" alt="Badge">
 <img alt="GitLab Stars" src="https://img.shields.io/github/stars/SR-Studio1-AdventureX25/MemoBloom?label=Stars">
 
-[**『 植物懂得安静，记忆因此有处可栖 』**](app.mb.sr-studio.cn)<br/>
+[**『 植物懂得安静，记忆因此有处可栖 』**](https://app.mb.sr-studio.cn)<br/>
 一个有关植物成长与回忆的养成系网页游戏<br/>
 
 #### [加入官方QQ群](https://qm.qq.com/q/f3QGDkdp6M)｜[Translate into English](README.md)

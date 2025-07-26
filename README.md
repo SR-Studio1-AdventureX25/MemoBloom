@@ -7,7 +7,7 @@
 <img src="https://img.shields.io/static/v1?label=LICENSE&message=MIT&color=coral" alt="Badge">
 <img alt="GitLab Stars" src="https://img.shields.io/github/stars/SR-Studio1-AdventureX25/MemoBloom?label=Stars">
 
-[**「 Plants possess the art of silence, where memories find their shelter 」**](app.mb.sr-studio.cn)<br/>
+[**「 Plants possess the art of silence, where memories find their shelter 」**](https://app.mb.sr-studio.cn)<br/>
 A nurturing web game about plant growth and memories<br/>
 
 #### [Join the QQ group](https://qm.qq.com/q/f3QGDkdp6M)｜[切换到简体中文](CN_README.md)
