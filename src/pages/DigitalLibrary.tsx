@@ -4,7 +4,6 @@ export default function DigitalLibraryPage() {
   const {
     sortedPlants,
     sortedAudios,
-    boxOffsets,
     scrollLeft,
     scrollAreaRef,
     handleScroll,
@@ -31,7 +30,6 @@ export default function DigitalLibraryPage() {
         <LibraryGrid
           sortedPlants={sortedPlants}
           sortedAudios={sortedAudios}
-          boxOffsets={boxOffsets}
           onAudioClick={handleAudioClick}
         />
       </div>

@@ -27,8 +27,6 @@ export const AudioDetailModal = memo(function ({
   const [isAudioLoading, setIsAudioLoading] = useState(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [audioError, setAudioError] = useState<string | null>(null);
-  const [audioDuration, setAudioDuration] = useState(0);
-  const [audioCurrentTime, setAudioCurrentTime] = useState(0);
   
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -81,33 +79,13 @@ export const AudioDetailModal = memo(function ({
   };
 
   // 音频事件处理
-  const handleAudioLoadedMetadata = () => {
-    if (audioRef.current) {
-      setAudioDuration(audioRef.current.duration);
-    }
-  };
-
-  const handleAudioTimeUpdate = () => {
-    if (audioRef.current) {
-      setAudioCurrentTime(audioRef.current.currentTime);
-    }
-  };
-
   const handleAudioEnded = () => {
     setIsAudioPlaying(false);
-    setAudioCurrentTime(0);
   };
 
   const handleAudioError = () => {
     setAudioError('音频播放出错');
     setIsAudioPlaying(false);
-  };
-
-  // 格式化时间显示
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   useEffect(() => {
@@ -136,8 +114,6 @@ export const AudioDetailModal = memo(function ({
       }
       // 重置音频状态
       setAudioError(null);
-      setAudioCurrentTime(0);
-      setAudioDuration(0);
     }
   }, [isOpen, animationData]);
 
@@ -175,22 +151,52 @@ export const AudioDetailModal = memo(function ({
         backgroundColor: 'rgba(0, 0, 0, 0.6)'
       }}
     >
-      {/* 动画唱片 */}
-      <img 
-        src={audioRecord.nftMinted ? "/CDVIP.png" : "/CD.png"}
-        className={`fixed z-60 transition-all duration-700 ease-out ${!animatingDisc && !isClosing ? 'animate-spin-slow' : ''}`}
+      {/* 动画唱片 - 可点击控制播放 */}
+      <div
+        className={`fixed z-60 transition-all duration-700 ease-out cursor-pointer group ${!animatingDisc && !isClosing && isAudioPlaying ? 'animate-spin-slow' : ''}`}
         style={{
           left: (animatingDisc && !isClosing) || isClosing ? `${animationData.startX}px` : `calc(50vw - 140px)`,
           top: (animatingDisc && !isClosing) || isClosing ? `${animationData.startY}px` : `calc(22vh - 140px)`,
           width: (animatingDisc && !isClosing) || isClosing ? `${animationData.startSize}px` : '280px',
           height: (animatingDisc && !isClosing) || isClosing ? `${animationData.startSize}px` : '280px',
-          filter: `
-            drop-shadow(0 12px 24px rgba(139, 69, 19, 0.6))
-            drop-shadow(0 6px 12px rgba(160, 82, 45, 0.4))
-            drop-shadow(0 0 30px rgba(218, 165, 32, 0.3))
-          `
         }}
-      />
+        onClick={(e) => {
+          e.stopPropagation();
+          if (showContent && !isClosing && audioRecord.memoryFile) {
+            togglePlayPause();
+          }
+        }}
+      >
+        <img 
+          src={audioRecord.nftMinted ? "/CDVIP.png" : "/CD.png"}
+          className="w-full h-full transition-all duration-200 group-hover:scale-105"
+          style={{
+            filter: `
+              drop-shadow(0 12px 24px rgba(139, 69, 19, 0.6))
+              drop-shadow(0 6px 12px rgba(160, 82, 45, 0.4))
+              drop-shadow(0 0 30px rgba(218, 165, 32, 0.3))
+              ${showContent && !isClosing ? 'brightness(1.1)' : ''}
+            `
+          }}
+        />
+        
+        {/* 播放状态指示器 */}
+        {showContent && !isClosing && audioRecord.memoryFile && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className={`w-16 h-16 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-2xl transition-all duration-200 ${isAudioPlaying ? 'opacity-0 group-hover:opacity-100' : 'opacity-80'}`}>
+              {isAudioLoading ? (
+                <div className="animate-spin text-yellow-400">⟳</div>
+              ) : audioError ? (
+                <div className="text-red-400">❌</div>
+              ) : isAudioPlaying ? (
+                <div className="text-yellow-400">⏸️</div>
+              ) : (
+                <div className="text-yellow-400">▶️</div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
       
       {/* 内容区域 - 动画完成后显示 */}
       {showContent && !isClosing && (
@@ -243,59 +249,20 @@ export const AudioDetailModal = memo(function ({
               <span>成长值：+{audioRecord.growthIncrement}</span>
             </div>
             
-            {/* 音频播放器 */}
+            {/* 音频控制提示 */}
             {audioRecord.memoryFile && (
-              <div className="bg-black/30 rounded-lg p-4 backdrop-blur-sm border border-yellow-500/30">
-                {isAudioLoading && (
-                  <div className="text-yellow-300 text-center" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
-                    🎵 正在加载音频...
+              <div className="text-yellow-400 text-lg font-bold" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
+                {isAudioLoading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="animate-spin">⟳</div>
+                    <span>正在加载音频...</span>
                   </div>
-                )}
-                
-                {audioError && (
-                  <div className="text-red-300 text-center" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
-                    ❌ {audioError}
-                  </div>
-                )}
-                
-                {!isAudioLoading && !audioError && (
-                  <div className="flex flex-col items-center space-y-3">
-                    {/* 播放控制按钮 */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        togglePlayPause();
-                      }}
-                      className="w-12 h-12 rounded-full bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-300 hover:to-yellow-500 flex items-center justify-center text-black text-xl font-bold shadow-lg transition-all duration-200 hover:scale-110"
-                    >
-                      {isAudioPlaying ? '⏸️' : '▶️'}
-                    </button>
-                    
-                    {/* 播放进度和时间 */}
-                    {audioDuration > 0 && (
-                      <div className="flex items-center space-x-3 w-full max-w-xs">
-                        <span className="text-yellow-300 text-sm font-mono" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}>
-                          {formatTime(audioCurrentTime)}
-                        </span>
-                        
-                        {/* 进度条 */}
-                        <div className="flex-1 h-2 bg-black/50 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-gradient-to-r from-yellow-400 to-yellow-600 transition-all duration-100"
-                            style={{ width: `${(audioCurrentTime / audioDuration) * 100}%` }}
-                          />
-                        </div>
-                        
-                        <span className="text-yellow-300 text-sm font-mono" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}>
-                          {formatTime(audioDuration)}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {/* 播放状态提示 */}
-                    <div className="text-yellow-400 text-sm" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
-                      {isAudioPlaying ? '🎵 正在播放记忆录音' : '⏸️ 点击播放记忆录音'}
-                    </div>
+                ) : audioError ? (
+                  <div className="text-red-300">❌ {audioError}</div>
+                ) : (
+                  <div className="flex items-center justify-center gap-2">
+                    <span>{isAudioPlaying ? '🎵' : '🎶'}</span>
+                    <span>点击唱片{isAudioPlaying ? '暂停' : '播放'}记忆录音</span>
                   </div>
                 )}
               </div>
@@ -335,8 +302,6 @@ export const AudioDetailModal = memo(function ({
       {/* 隐藏的音频元素 */}
       <audio
         ref={audioRef}
-        onLoadedMetadata={handleAudioLoadedMetadata}
-        onTimeUpdate={handleAudioTimeUpdate}
         onEnded={handleAudioEnded}
         onError={handleAudioError}
         preload="metadata"
