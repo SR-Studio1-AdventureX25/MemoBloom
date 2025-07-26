@@ -7,6 +7,11 @@ export interface SyncStatus {
   isComplete: boolean
   isSyncing: boolean
   error?: string
+  // 新增字段 - 智能同步和指数退避
+  lastModified?: number        // 最后修改时间（创建/更新数据的时间）
+  forceExpireUntil?: number    // 强制过期截止时间
+  backoffLevel?: number        // 退避等级 (0, 1, 2, 3...)
+  nextSyncTime?: number        // 下次允许同步的时间
 }
 
 // 应用状态类型

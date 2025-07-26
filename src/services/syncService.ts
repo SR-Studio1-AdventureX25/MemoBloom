@@ -6,7 +6,12 @@ import type { Plant, WateringRecord } from '@/types'
 const SYNC_CONFIG = {
   SYNC_INTERVAL: 5 * 60 * 1000, // 5分钟同步间隔
   MAX_RETRY_COUNT: 3,
-  BATCH_SIZE: 5 // 批量同步大小
+  BATCH_SIZE: 5, // 批量同步大小
+  // 新增 - 智能同步配置
+  FORCE_EXPIRE_DURATION: 60 * 1000,    // 60秒强制过期期
+  BASE_BACKOFF_DELAY: 2000,            // 2秒基础退避
+  MAX_BACKOFF_DELAY: 60000,            // 60秒最大退避
+  MAX_BACKOFF_LEVEL: 5,                // 最大退避等级
 } as const
 
 class SyncService {
@@ -15,7 +20,46 @@ class SyncService {
   private isGlobalSyncing = false
 
   /**
-   * 检查是否需要同步
+   * 计算指数退避延迟时间
+   */
+  private calculateBackoffDelay(backoffLevel: number = 0): number {
+    const delay = Math.min(
+      SYNC_CONFIG.BASE_BACKOFF_DELAY * Math.pow(2, backoffLevel),
+      SYNC_CONFIG.MAX_BACKOFF_DELAY
+    )
+    return delay
+  }
+
+  /**
+   * 检查数据是否有变化
+   */
+  private hasDataChanged(localData: Plant | WateringRecord, serverData: Plant | WateringRecord): boolean {
+    // 简单的数据变化检测，比较关键字段
+    if ('variety' in localData && 'variety' in serverData) {
+      // 植物数据比较
+      const local = localData as Plant
+      const server = serverData as Plant
+      return (
+        local.currentGrowthStage !== server.currentGrowthStage ||
+        local.growthValue !== server.growthValue ||
+        local.lastWateringTime !== server.lastWateringTime ||
+        JSON.stringify(local.personalityTags) !== JSON.stringify(server.personalityTags)
+      )
+    } else {
+      // 浇水记录数据比较
+      const local = localData as WateringRecord
+      const server = serverData as WateringRecord
+      return (
+        local.memoryText !== server.memoryText ||
+        JSON.stringify(local.emotionTags) !== JSON.stringify(server.emotionTags) ||
+        local.emotionIntensity !== server.emotionIntensity ||
+        local.coreEvent !== server.coreEvent
+      )
+    }
+  }
+
+  /**
+   * 智能同步判断 - 新的同步逻辑
    */
   private needsSync(entity: Plant | WateringRecord, type: 'plant' | 'watering'): boolean {
     const now = Date.now()
@@ -27,53 +71,62 @@ class SyncService {
       return false
     }
 
-    // 如果有错误且距离上次同步时间不长，暂时不同步
-    if (syncStatus.error && (now - syncStatus.lastSync) < SYNC_CONFIG.SYNC_INTERVAL / 2) {
-      return false
+    // 1. 检查是否在强制过期期间（60秒内）
+    if (syncStatus.lastModified && 
+        (now - syncStatus.lastModified) < SYNC_CONFIG.FORCE_EXPIRE_DURATION) {
+      console.log(`实体在强制过期期间 [${entity.id}]: ${now - syncStatus.lastModified}ms ago`)
+      return true // 60秒内强制过期
     }
 
-    // 检查是否过期
-    const isExpired = !syncStatus.lastSync || (now - syncStatus.lastSync) > SYNC_CONFIG.SYNC_INTERVAL
+    // 2. 检查指数退避时间
+    if (syncStatus.nextSyncTime && now < syncStatus.nextSyncTime) {
+      console.log(`实体在退避期间 [${entity.id}]: 还需等待 ${syncStatus.nextSyncTime - now}ms`)
+      return false // 还在退避期间
+    }
+
+    // 3. 检查强制过期截止时间
+    if (syncStatus.forceExpireUntil && now < syncStatus.forceExpireUntil) {
+      console.log(`实体在强制过期截止时间内 [${entity.id}]: 还有 ${syncStatus.forceExpireUntil - now}ms`)
+      return true // 在强制过期截止时间内
+    }
+
+    // 4. 常规过期检查
+    const isExpired = !syncStatus.lastSync || 
+                     (now - syncStatus.lastSync) > SYNC_CONFIG.SYNC_INTERVAL
     
-    // 检查同步状态是否完整
+    // 5. 检查同步状态是否完整
     const isSyncIncomplete = !syncStatus.isComplete
 
-    // 植物特定的检查
+    // 6. 植物特定的检查
     if (type === 'plant') {
       const plant = entity as Plant
-      
-      // 基本同步状态检查
       const basicIncomplete = plant.syncStatus !== 'complete' || !plant.lastSyncTime
       
-      // 数据完整性检查（放宽条件，允许某些字段为空）
-      const dataIncomplete = false // 暂时禁用严格的数据完整性检查
+      const needSync = isExpired || isSyncIncomplete || basicIncomplete
       
-      const needSync = isExpired || isSyncIncomplete || basicIncomplete || dataIncomplete
-      
-      // 只在需要同步时输出日志
       if (needSync) {
         console.log(`植物需要同步 [${entity.id}]:`, {
           isExpired,
           isSyncIncomplete,
-          basicIncomplete
+          basicIncomplete,
+          lastSync: syncStatus.lastSync,
+          timeSinceLastSync: syncStatus.lastSync ? now - syncStatus.lastSync : 'never'
         })
       }
       
       return needSync
     }
 
-    // 浇水记录特定的检查
+    // 7. 浇水记录特定的检查
     if (type === 'watering') {
-      // 数据完整性检查（放宽条件）
-      const dataIncomplete = false // 暂时禁用严格的数据完整性检查
+      const needSync = isExpired || isSyncIncomplete
       
-      const needSync = isExpired || isSyncIncomplete || dataIncomplete
-      
-      // 只在需要同步时输出日志
       if (needSync) {
         console.log(`浇水记录需要同步 [${entity.id}]:`, {
           isExpired,
-          isSyncIncomplete
+          isSyncIncomplete,
+          lastSync: syncStatus.lastSync,
+          timeSinceLastSync: syncStatus.lastSync ? now - syncStatus.lastSync : 'never'
         })
       }
       
@@ -105,6 +158,8 @@ class SyncService {
 
   private async _syncPlantInternal(plantId: string): Promise<Plant | null> {
     const store = useAppStore.getState()
+    const currentSyncStatus = store.getSyncStatus(plantId, 'plant')
+    const localPlant = store.plants.find(p => p.id === plantId)
     
     try {
       console.log(`开始同步植物: ${plantId}`)
@@ -118,34 +173,75 @@ class SyncService {
 
       // 从服务器获取最新数据
       const response = await apiService.plants.getById(plantId)
-      const updatedPlant: Plant = {
+      const serverPlant: Plant = {
         ...response.data,
         lastSyncTime: Date.now(),
         syncStatus: 'complete'
       }
 
+      // 检查数据是否有变化
+      const hasChanged = localPlant ? this.hasDataChanged(localPlant, serverPlant) : true
+      
       // 更新本地数据
-      store.updatePlant(plantId, updatedPlant)
+      store.updatePlant(plantId, serverPlant)
 
-      // 更新同步状态
-      store.setSyncStatus(plantId, 'plant', {
+      // 根据数据变化情况更新同步状态
+      const now = Date.now()
+      const baseSyncStatus = {
         isSyncing: false,
         isComplete: true,
-        lastSync: Date.now(),
+        lastSync: now,
         error: undefined
-      })
+      }
+
+      if (hasChanged) {
+        console.log(`植物数据有变化 [${plantId}]，重置退避等级`)
+        // 数据有变化，重置退避等级，继续频繁同步
+        store.setSyncStatus(plantId, 'plant', {
+          ...baseSyncStatus,
+          backoffLevel: 0,
+          nextSyncTime: undefined
+        })
+      } else {
+        console.log(`植物数据无变化 [${plantId}]，增加退避等级`)
+        // 数据无变化，增加退避等级
+        const newBackoffLevel = Math.min(
+          (currentSyncStatus.backoffLevel || 0) + 1, 
+          SYNC_CONFIG.MAX_BACKOFF_LEVEL
+        )
+        const backoffDelay = this.calculateBackoffDelay(newBackoffLevel)
+        
+        store.setSyncStatus(plantId, 'plant', {
+          ...baseSyncStatus,
+          backoffLevel: newBackoffLevel,
+          nextSyncTime: now + backoffDelay
+        })
+        
+        console.log(`植物 [${plantId}] 退避等级: ${newBackoffLevel}, 下次同步时间: ${backoffDelay}ms 后`)
+      }
 
       console.log(`植物同步成功: ${plantId}`)
-      return updatedPlant
+      return serverPlant
 
     } catch (error) {
       console.error(`植物同步失败: ${plantId}`, error)
       
+      // 同步失败，增加退避等级
+      const newBackoffLevel = Math.min(
+        (currentSyncStatus.backoffLevel || 0) + 1, 
+        SYNC_CONFIG.MAX_BACKOFF_LEVEL
+      )
+      const backoffDelay = this.calculateBackoffDelay(newBackoffLevel)
+      const now = Date.now()
+      
       store.setSyncStatus(plantId, 'plant', {
         isSyncing: false,
-        error: error instanceof Error ? error.message : 'Unknown sync error'
+        error: error instanceof Error ? error.message : 'Unknown sync error',
+        backoffLevel: newBackoffLevel,
+        nextSyncTime: now + backoffDelay
       })
 
+      console.log(`植物同步失败 [${plantId}] 退避等级: ${newBackoffLevel}, 下次重试时间: ${backoffDelay}ms 后`)
       return null
     }
   }
@@ -172,6 +268,8 @@ class SyncService {
 
   private async _syncWateringRecordInternal(recordId: string): Promise<WateringRecord | null> {
     const store = useAppStore.getState()
+    const currentSyncStatus = store.getSyncStatus(recordId, 'watering')
+    const localRecord = store.wateringRecords.find(r => r.id === recordId)
     
     try {
       console.log(`开始同步浇水记录: ${recordId}`)
@@ -185,30 +283,71 @@ class SyncService {
 
       // 从服务器获取最新数据
       const response = await apiService.watering.getRecordById(recordId)
-      const updatedRecord = response.data
+      const serverRecord = response.data
 
+      // 检查数据是否有变化
+      const hasChanged = localRecord ? this.hasDataChanged(localRecord, serverRecord) : true
+      
       // 更新本地数据
-      store.updateWateringRecord(recordId, updatedRecord)
+      store.updateWateringRecord(recordId, serverRecord)
 
-      // 更新同步状态
-      store.setSyncStatus(recordId, 'watering', {
+      // 根据数据变化情况更新同步状态
+      const now = Date.now()
+      const baseSyncStatus = {
         isSyncing: false,
         isComplete: true,
-        lastSync: Date.now(),
+        lastSync: now,
         error: undefined
-      })
+      }
+
+      if (hasChanged) {
+        console.log(`浇水记录数据有变化 [${recordId}]，重置退避等级`)
+        // 数据有变化，重置退避等级，继续频繁同步
+        store.setSyncStatus(recordId, 'watering', {
+          ...baseSyncStatus,
+          backoffLevel: 0,
+          nextSyncTime: undefined
+        })
+      } else {
+        console.log(`浇水记录数据无变化 [${recordId}]，增加退避等级`)
+        // 数据无变化，增加退避等级
+        const newBackoffLevel = Math.min(
+          (currentSyncStatus.backoffLevel || 0) + 1, 
+          SYNC_CONFIG.MAX_BACKOFF_LEVEL
+        )
+        const backoffDelay = this.calculateBackoffDelay(newBackoffLevel)
+        
+        store.setSyncStatus(recordId, 'watering', {
+          ...baseSyncStatus,
+          backoffLevel: newBackoffLevel,
+          nextSyncTime: now + backoffDelay
+        })
+        
+        console.log(`浇水记录 [${recordId}] 退避等级: ${newBackoffLevel}, 下次同步时间: ${backoffDelay}ms 后`)
+      }
 
       console.log(`浇水记录同步成功: ${recordId}`)
-      return updatedRecord
+      return serverRecord
 
     } catch (error) {
       console.error(`浇水记录同步失败: ${recordId}`, error)
       
+      // 同步失败，增加退避等级
+      const newBackoffLevel = Math.min(
+        (currentSyncStatus.backoffLevel || 0) + 1, 
+        SYNC_CONFIG.MAX_BACKOFF_LEVEL
+      )
+      const backoffDelay = this.calculateBackoffDelay(newBackoffLevel)
+      const now = Date.now()
+      
       store.setSyncStatus(recordId, 'watering', {
         isSyncing: false,
-        error: error instanceof Error ? error.message : 'Unknown sync error'
+        error: error instanceof Error ? error.message : 'Unknown sync error',
+        backoffLevel: newBackoffLevel,
+        nextSyncTime: now + backoffDelay
       })
 
+      console.log(`浇水记录同步失败 [${recordId}] 退避等级: ${newBackoffLevel}, 下次重试时间: ${backoffDelay}ms 后`)
       return null
     }
   }
@@ -320,6 +459,39 @@ class SyncService {
   }
 
   /**
+   * 标记实体数据已修改，触发强制过期
+   */
+  markEntityModified(entityId: string, type: 'plant' | 'watering'): void {
+    const store = useAppStore.getState()
+    const now = Date.now()
+    
+    console.log(`标记实体已修改 [${entityId}] (${type})`)
+    
+    store.setSyncStatus(entityId, type, {
+      lastModified: now,
+      forceExpireUntil: now + SYNC_CONFIG.FORCE_EXPIRE_DURATION,
+      isComplete: false, // 标记为需要同步
+      backoffLevel: 0, // 重置退避等级
+      nextSyncTime: undefined // 清除退避时间
+    })
+  }
+
+  /**
+   * 批量标记植物和相关浇水记录已修改
+   */
+  markPlantAndRecordsModified(plantId: string, recordId?: string): void {
+    // 标记植物已修改
+    this.markEntityModified(plantId, 'plant')
+    
+    // 如果提供了浇水记录ID，也标记它已修改
+    if (recordId) {
+      this.markEntityModified(recordId, 'watering')
+    }
+    
+    console.log(`批量标记修改完成: 植物[${plantId}]${recordId ? `, 浇水记录[${recordId}]` : ''}`)
+  }
+
+  /**
    * 清理过期的同步状态
    */
   cleanupExpiredSyncStatus(): void {
@@ -338,5 +510,7 @@ export const {
   syncSingleWateringRecord,
   smartSync,
   backgroundSync,
-  getCurrentPlantWithSync
+  getCurrentPlantWithSync,
+  markEntityModified,
+  markPlantAndRecordsModified
 } = syncService

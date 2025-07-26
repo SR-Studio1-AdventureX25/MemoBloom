@@ -4,6 +4,7 @@ import { audioRecorderService, AudioRecorderService } from '@/services/audioReco
 import { speechRecognitionService } from '@/services/speechRecognition'
 import { aiAnalysisService } from '@/services/aiAnalysis'
 import { apiService } from '@/services/api'
+import { markPlantAndRecordsModified } from '@/services/syncService'
 import type { OfflineWateringItem, WateringRecord } from '@/types'
 
 interface MicrophoneButtonProps {
@@ -200,6 +201,9 @@ export default function MicrophoneButton({
           addWateringRecord(localRecord)
           console.log('浇水记录已保存到本地store:', localRecord.id)
 
+          // 标记植物和浇水记录已修改，触发智能同步
+          markPlantAndRecordsModified(plantId, localRecord.id)
+
           onWateringComplete(true, analysisMessage, emotionResult)
         } catch (error) {
           console.error('在线浇水失败:', error)
@@ -233,6 +237,9 @@ export default function MicrophoneButton({
           })
 
           console.log('浇水记录已保存到本地store（离线队列）:', tempRecordId)
+
+          // 标记植物和浇水记录已修改，触发智能同步
+          markPlantAndRecordsModified(plantId, tempRecordId)
 
           addNotification({
             title: '已保存到离线队列',
@@ -274,6 +281,9 @@ export default function MicrophoneButton({
         addToOfflineQueue(offlineItem)
         
         console.log('浇水记录已保存到本地store（离线模式）:', tempRecordId)
+        
+        // 标记植物和浇水记录已修改，触发智能同步
+        markPlantAndRecordsModified(plantId, tempRecordId)
         
         addNotification({
           title: '离线浇水成功',
