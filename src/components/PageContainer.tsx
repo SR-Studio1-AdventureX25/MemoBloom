@@ -35,6 +35,29 @@ const PageContainer = ({ onRecordingStateChange }: PageContainerProps) => {
   const WHEEL_THRESHOLD = 100 // 滚轮累积阈值
   const WHEEL_RESET_DELAY = 150 // 滚轮累积重置延迟(ms)
 
+  // 检测WalletPage滚动状态的辅助函数
+  const checkWalletScrollBoundary = useCallback((target: Element, deltaY: number) => {
+    const walletScrollContainer = (target as Element).closest('[data-wallet-scroll]')
+    if (!walletScrollContainer) return true // 不在WalletPage滚动区域内，允许页面切换
+
+    const scrollTop = walletScrollContainer.scrollTop
+    const scrollHeight = walletScrollContainer.scrollHeight
+    const clientHeight = walletScrollContainer.clientHeight
+    const maxScroll = scrollHeight - clientHeight
+
+    // 如果内容不需要滚动，允许页面切换
+    if (maxScroll <= 0) return true
+
+    // 向上滚动且已到顶部，允许页面切换
+    if (deltaY < 0 && scrollTop <= 1) return true
+
+    // 向下滚动且已到底部，允许页面切换
+    if (deltaY > 0 && scrollTop >= maxScroll - 1) return true
+
+    // 其他情况不允许页面切换，让WalletPage内部滚动
+    return false
+  }, [])
+
   // 开始动画
   const startAnimation = useCallback((targetProgress: number, duration: number = ANIMATION_DURATION) => {
     if (animationFrameRef.current) {
@@ -118,6 +141,12 @@ const PageContainer = ({ onRecordingStateChange }: PageContainerProps) => {
     touchInfoRef.current.currentY = touch.clientY
     
     const deltaY = touchInfoRef.current.startY - touch.clientY
+
+    // 检查WalletPage滚动边界
+    if (!checkWalletScrollBoundary(e.target as Element, deltaY)) {
+      return // 不在边界，让WalletPage内部滚动
+    }
+
     const maxDelta = window.innerHeight * 0.3 // 最大拖拽距离为屏幕高度的30%
     
     // 计算实时进度
@@ -139,16 +168,22 @@ const PageContainer = ({ onRecordingStateChange }: PageContainerProps) => {
 
     // 防止页面滚动
     e.preventDefault()
-  }, [isAnimating, currentPage, updateProgress])
+  }, [isAnimating, currentPage, updateProgress, checkWalletScrollBoundary])
 
   // 原生触摸结束处理函数
-  const handleNativeTouchEnd = useCallback(() => {
+  const handleNativeTouchEnd = useCallback((e: TouchEvent) => {
     if (!touchInfoRef.current || isAnimating) return
 
     const { startY, startTime, currentY } = touchInfoRef.current
     const deltaY = startY - currentY
     const deltaTime = Date.now() - startTime
     const velocity = Math.abs(deltaY) / deltaTime
+
+    // 检查WalletPage滚动边界
+    if (!checkWalletScrollBoundary(e.target as Element, deltaY)) {
+      touchInfoRef.current = null
+      return // 不在边界，让WalletPage内部滚动
+    }
 
     // 判断是否触发页面切换
     const shouldSwitch = Math.abs(deltaY) > SWIPE_THRESHOLD || velocity > VELOCITY_THRESHOLD
@@ -184,7 +219,7 @@ const PageContainer = ({ onRecordingStateChange }: PageContainerProps) => {
     }
 
     touchInfoRef.current = null
-  }, [isAnimating, currentPage, startAnimation])
+  }, [isAnimating, currentPage, startAnimation, checkWalletScrollBoundary])
 
   // 鼠标滚轮处理函数
   const handleWheel = useCallback((e: WheelEvent) => {
@@ -199,6 +234,11 @@ const PageContainer = ({ onRecordingStateChange }: PageContainerProps) => {
     }
 
     if (isAnimating) return
+
+    // 检查WalletPage滚动边界
+    if (!checkWalletScrollBoundary(e.target as Element, e.deltaY)) {
+      return // 不在边界，让WalletPage内部滚动
+    }
 
     // 防止默认滚动行为
     e.preventDefault()
@@ -251,7 +291,7 @@ const PageContainer = ({ onRecordingStateChange }: PageContainerProps) => {
         wheelAccumulatorRef.current = 0
       }, WHEEL_RESET_DELAY)
     }
-  }, [isAnimating, currentPage, startAnimation])
+  }, [isAnimating, currentPage, startAnimation, checkWalletScrollBoundary])
 
   // 设置触摸事件和滚轮事件监听器
   useEffect(() => {

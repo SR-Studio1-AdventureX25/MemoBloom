@@ -123,7 +123,7 @@ export default function WalletPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative overflow-hidden">
+    <div className="h-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative overflow-hidden">
       {/* 背景装饰 */}
       <div className="absolute inset-0 opacity-20">
         <div className="absolute top-10 left-10 w-32 h-32 bg-purple-500 rounded-full blur-3xl"></div>
@@ -131,9 +131,15 @@ export default function WalletPage() {
         <div className="absolute top-1/2 left-1/3 w-28 h-28 bg-indigo-500 rounded-full blur-3xl"></div>
       </div>
 
-      {/* 主要内容 */}
-      <div className="relative z-10 p-6 pt-16 min-h-screen flex items-center justify-center">
-        {renderContent()}
+      {/* 主要内容 - 可滚动容器 */}
+      <div 
+        className="relative z-10 h-full overflow-y-auto overflow-x-hidden"
+        data-wallet-scroll
+        style={{ scrollBehavior: 'smooth' }}
+      >
+        <div className="p-6 pt-16 min-h-full flex items-center justify-center">
+          {renderContent()}
+        </div>
       </div>
     </div>
   )
