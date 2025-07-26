@@ -95,12 +95,39 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       'buffer': 'buffer/',
+      'events': 'events',
+      'stream': 'stream-browserify',
+      'util': 'util',
+      'crypto': 'crypto-browserify',
+      'assert': 'assert',
+      'url': 'url',
+      'os': 'os-browserify/browser',
+      'path': 'path-browserify',
+      'fs': 'browserify-fs',
     },
   },
   define: {
     // 这会将 process.env.NODE_ENV 替换为实际值，避免一些库的报错
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
     // 定义 global 对象，某些库会用到
-    global: 'window',
+    global: 'globalThis',
+    // 定义 process 对象
+    'process.env': {},
+    'process.version': JSON.stringify('v16.0.0'),
+    'process.browser': true,
+  },
+  optimizeDeps: {
+    include: [
+      'buffer',
+      'events',
+      'stream-browserify',
+      'util',
+      'crypto-browserify',
+      'assert',
+      'url',
+      'os-browserify/browser',
+      'path-browserify',
+      '@injectivelabs/sdk-ts'
+    ],
   },
 })

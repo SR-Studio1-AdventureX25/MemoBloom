@@ -1,4 +1,5 @@
 import * as bip39 from 'bip39'
+import { PrivateKey } from '@injectivelabs/sdk-ts'
 import type { MnemonicInfo } from '@/types'
 
 export class InjectiveWalletService {
@@ -38,17 +39,20 @@ export class InjectiveWalletService {
         throw new Error('无效的助记词')
       }
 
-      // 生成种子
-      const seed = await bip39.mnemonicToSeed(mnemonic)
+      // 使用 Injective SDK 从助记词生成私钥
+      // Injective 使用标准的 Ethereum 兼容路径: m/44'/60'/0'/0/0
+      const privateKey = PrivateKey.fromMnemonic(mnemonic.trim(), "m/44'/60'/0'/0/0")
       
-      // 简化版本：生成模拟的Injective地址
-      const address = this.generateMockInjectiveAddress(seed)
-      const publicKey = this.generateMockPublicKey(seed)
+      // 直接从私钥生成 Injective 地址
+      const address = privateKey.toBech32()
+      
+      // 获取公钥的十六进制表示
+      const publicKeyHex = privateKey.toPublicKey().toHex()
 
       return {
         mnemonic: mnemonic.trim(),
-        address,
-        publicKey
+        address: address,
+        publicKey: publicKeyHex
       }
     } catch (error) {
       console.error('从助记词生成钱包失败:', error)
@@ -56,40 +60,6 @@ export class InjectiveWalletService {
     }
   }
 
-  // 生成模拟的Injective地址（用于开发阶段）
-  private generateMockInjectiveAddress(seed: Buffer): string {
-    // 使用种子生成确定性的地址
-    const hash = this.createHash(seed.toString('hex') + 'address')
-    const addressBytes = hash.slice(0, 20) // 取前20字节
-    
-    // 转换为bech32格式的模拟地址
-    const addressHex = addressBytes.toString('hex')
-    return `inj${addressHex.slice(0, 39)}`
-  }
-
-  // 生成模拟的公钥
-  private generateMockPublicKey(seed: Buffer): string {
-    const hash = this.createHash(seed.toString('hex') + 'pubkey')
-    return hash.toString('hex').slice(0, 64) // 32字节公钥
-  }
-
-  // 创建哈希（替代crypto.createHash）
-  private createHash(data: string): Buffer {
-    // 简单的哈希实现，用于生成确定性的地址
-    let hash = 0
-    const bytes = new Array(32)
-    
-    for (let i = 0; i < data.length; i++) {
-      hash = ((hash << 5) - hash + data.charCodeAt(i)) & 0xffffffff
-    }
-    
-    // 填充32字节的模拟哈希
-    for (let i = 0; i < 32; i++) {
-      bytes[i] = (hash + i * 37) & 0xff
-    }
-    
-    return Buffer.from(bytes)
-  }
 
   // 验证Injective地址格式
   validateInjectiveAddress(address: string): boolean {
