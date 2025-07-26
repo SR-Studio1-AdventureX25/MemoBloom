@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState, useMemo, memo } from 'react'
 import { useNavigate } from 'react-router'
 import { useAppStore } from '@/store'
+import type { Plant } from '@/types'
 // import { apiService } from '@/services/api'
 import VideoBackground from '@/components/VideoBackground'
 import MicrophoneButton from '@/components/MicrophoneButton'
 import SyncStatusIndicator from '@/components/SyncStatusIndicator'
 import { BloomDrawSystem } from '@/components/BloomDrawSystem'
+import { PlantCompletionModal } from '@/components/PlantCompletionModal'
 
 // 常量
 const LOADING_TEXT = '检查植物状态中...'
@@ -163,10 +165,12 @@ interface HomePageProps {
 }
 
 export default function HomePage({ onRecordingStateChange }: HomePageProps = {}) {
-  const { plants, currentPlantId, isOnline, addNotification } = useAppStore()
+  const { plants, currentPlantId, isOnline, addNotification, addFavoritePlant, setCurrentPlantId } = useAppStore()
   const [isLoading, setIsLoading] = useState(true)
   const [isRecording, setIsRecording] = useState(false)
   const [aiMessage, setAiMessage] = useState<string>('') // AI生成的消息
+  const [showCompletionModal, setShowCompletionModal] = useState(false)
+  const [completedPlant, setCompletedPlant] = useState<Plant | null>(null)
   const navigate = useNavigate()
 
   // 计算当前植物 - 使用 useMemo 优化性能
@@ -235,6 +239,38 @@ export default function HomePage({ onRecordingStateChange }: HomePageProps = {})
   useEffect(() => {
     checkPlantStatus()
   }, [checkPlantStatus])
+
+  // 植物完成检测 - 监听植物阶段变化
+  useEffect(() => {
+    if (currentPlant && currentPlant.currentGrowthStage === 'fruiting' && !showCompletionModal) {
+      // 植物达到fruiting阶段，触发成就弹窗
+      setCompletedPlant(currentPlant)
+      setShowCompletionModal(true)
+      
+      // 自动加入收藏
+      addFavoritePlant(currentPlant)
+      
+      // 添加成就通知
+      addNotification({
+        title: '🏆 植物养成完成！',
+        message: `恭喜你成功养成了一株${currentPlant.variety}！`,
+        type: 'success',
+        read: false
+      })
+    }
+  }, [currentPlant?.currentGrowthStage, currentPlant, showCompletionModal, addFavoritePlant, addNotification])
+
+  // 处理成就弹窗关闭
+  const handleCompletionModalClose = useCallback(() => {
+    setShowCompletionModal(false)
+    setCompletedPlant(null)
+    
+    // 清空当前植物ID，强制玩家进入创建植物界面
+    setCurrentPlantId(null)
+    
+    // 导航到创建植物页面
+    navigate('/createplant', { replace: true })
+  }, [setCurrentPlantId, navigate])
 
   // 浇水完成回调 - 使用 useCallback 优化
   const handleWateringComplete = useCallback((success: boolean, message?: string, emotion?: 'happy' | 'sad') => {
@@ -329,6 +365,13 @@ export default function HomePage({ onRecordingStateChange }: HomePageProps = {})
 
         {/* NFT状态指示器 */}
         {currentPlant.nftMinted && <NFTIndicator />}
+
+        {/* 植物完成成就弹窗 */}
+        <PlantCompletionModal 
+          plant={completedPlant}
+          isOpen={showCompletionModal}
+          onClose={handleCompletionModalClose}
+        />
       </div>
     )
   }
