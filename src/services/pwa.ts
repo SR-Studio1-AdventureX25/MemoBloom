@@ -396,8 +396,12 @@ export class PWAService {
 
   // 检测是否在PWA模式下运行
   isPWAMode(): boolean {
-    // 方法1: 检查display-mode媒体查询
+    // 方法1: 检查display-mode媒体查询（支持standalone和fullscreen）
     if (window.matchMedia('(display-mode: standalone)').matches) {
+      return true
+    }
+    
+    if (window.matchMedia('(display-mode: fullscreen)').matches) {
       return true
     }
 
@@ -406,8 +410,14 @@ export class PWAService {
       return true
     }
 
-    // 方法3: 检查referrer（从桌面启动时通常为空）
-    if (document.referrer === "" && window.location.href !== window.location.origin + "/") {
+    // 方法3: 检查URL参数（从PWA启动时会有source=pwa参数）
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('source') === 'pwa') {
+      return true
+    }
+
+    // 方法4: 检查是否从桌面启动（referrer为空且不是根路径直接访问）
+    if (document.referrer === "" && window.location.pathname !== "/") {
       return true
     }
 

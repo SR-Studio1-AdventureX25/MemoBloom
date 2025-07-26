@@ -49,6 +49,17 @@ export default function DebugPage() {
     addLog('info', `PWA模式: ${status.isPWAMode}, 可安装: ${status.canInstall}`)
     addLog('info', `移动PWA: ${status.isMobilePWA}, 通知方法: ${status.notificationMethod}`)
     
+    // 详细的PWA检测信息
+    const standaloneMatch = window.matchMedia('(display-mode: standalone)').matches
+    const fullscreenMatch = window.matchMedia('(display-mode: fullscreen)').matches
+    const iosStandalone = window.navigator.standalone === true
+    const urlParams = new URLSearchParams(window.location.search)
+    const hasPwaParam = urlParams.get('source') === 'pwa'
+    
+    addLog('info', `检测详情 - standalone: ${standaloneMatch}, fullscreen: ${fullscreenMatch}`)
+    addLog('info', `检测详情 - iOS standalone: ${iosStandalone}, PWA参数: ${hasPwaParam}`)
+    addLog('info', `检测详情 - referrer: "${document.referrer}", pathname: "${window.location.pathname}"`)
+    
     // 检查Service Worker状态
     if ('serviceWorker' in navigator) {
       try {
