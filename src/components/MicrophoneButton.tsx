@@ -184,26 +184,29 @@ export default function MicrophoneButton({
             wateringTime
           })
 
-          // 立即创建并保存本地浇水记录
+          // 创建最小化的本地浇水记录，只包含基础信息
+          // 详细的AI分析结果将通过同步机制从服务器获取
           const localRecord: WateringRecord = {
             id: response.data.recordId,
             plantId,
             plantGrowthValue: currentGrowthValue,
-            memoryText: recognizedText || '语音识别失败',
-            emotionTags: [emotionResult],
-            emotionIntensity: emotionResult === 'happy' ? 0.8 : 0.6,
-            growthIncrement: 5, // 默认增长值
-            coreEvent: analysisMessage,
-            nftMinted: false,
-            wateringTime: response.data.wateringTime
+            wateringTime: response.data.wateringTime,
+            // 以下字段设为空值，等待同步机制从服务器补全
+            memoryText: '',
+            emotionTags: [],
+            emotionIntensity: 0,
+            growthIncrement: 0,
+            coreEvent: '',
+            nftMinted: false
           }
 
           addWateringRecord(localRecord)
-          console.log('浇水记录已保存到本地store:', localRecord.id)
+          console.log('基础浇水记录已保存到本地store:', localRecord.id, '等待同步补全数据')
 
-          // 启动浇水记录的自动同步
+          // 启动浇水记录的自动同步，从服务器获取完整数据
           startWateringRecordSync(localRecord.id)
 
+          // 使用前端分析的结果提供即时反馈，但不存储到本地
           onWateringComplete(true, analysisMessage, emotionResult)
         } catch (error) {
           console.error('浇水失败:', error)
