@@ -77,8 +77,12 @@ export function useWalletSetup() {
       let credential: string | ArrayBuffer
 
       if (selectedAuthMethod === 'pin') {
-        if (pin !== confirmPin) {
-          throw new Error('两次输入的PIN码不一致')
+        // 处理确认PIN码的逻辑
+        const actualConfirmPin = confirmPin === 'CONFIRM_STEP' ? '' : confirmPin
+        console.log('创建钱包时的PIN码比较:', { pin, confirmPin, actualConfirmPin })
+        
+        if (pin !== actualConfirmPin) {
+          throw new Error(`两次输入的PIN码不一致: "${pin}" vs "${actualConfirmPin}"`)
         }
         if (!walletCrypto.validatePin(pin)) {
           throw new Error('PIN码必须是6位数字')
@@ -112,7 +116,7 @@ export function useWalletSetup() {
   }
 
   // 解锁钱包
-  const handleUnlockWallet = async () => {
+  const handleUnlockWallet = async (pinCode?: string) => {
     if (!authMethod) return
 
     setIsLoading(true)
@@ -122,10 +126,12 @@ export function useWalletSetup() {
       let credential: string | ArrayBuffer
 
       if (authMethod === 'pin') {
-        if (!pin) {
-          throw new Error('请输入PIN码')
+        const currentPin = pinCode || pin
+        if (!currentPin || currentPin.length !== 6) {
+          throw new Error('请输入完整的6位PIN码')
         }
-        credential = pin
+        console.log('尝试使用PIN码解锁:', currentPin)
+        credential = currentPin
       } else {
         // 使用Passkey认证
         credential = await passkeyAuth.authenticate()
@@ -140,6 +146,7 @@ export function useWalletSetup() {
         throw new Error('解锁失败，请检查PIN码或重试')
       }
     } catch (error) {
+      console.error('解锁钱包错误:', error)
       setError(error instanceof Error ? error.message : '解锁失败')
     } finally {
       setIsLoading(false)

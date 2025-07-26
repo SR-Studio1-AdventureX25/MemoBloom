@@ -1,6 +1,6 @@
 import MnemonicDisplay from '@/components/wallet/MnemonicDisplay'
 import MnemonicImport from '@/components/wallet/MnemonicImport'
-import PinInput from '@/components/wallet/PinInput'
+import PinInputOTP from '@/components/wallet/PinInputOTP'
 import type { WalletSetupStep } from '@/types'
 
 interface WalletSetupFlowProps {
@@ -8,7 +8,7 @@ interface WalletSetupFlowProps {
   generatedMnemonic: string
   pin: string
   confirmPin: string
-  passkeySupported: boolean
+  passkeySupported: boolean // 暂时未使用，passkey功能已禁用
   isLoading: boolean
   error: string
   onSetupStepChange: (step: WalletSetupStep) => void
@@ -26,7 +26,7 @@ export default function WalletSetupFlow({
   generatedMnemonic,
   pin,
   confirmPin,
-  passkeySupported,
+  passkeySupported, // eslint-disable-line @typescript-eslint/no-unused-vars
   isLoading,
   error,
   onSetupStepChange,
@@ -123,7 +123,7 @@ export default function WalletSetupFlow({
     case 'choose-auth':
       return (
         <div className="text-center max-w-sm mx-auto">
-          <h2 className="text-2xl font-bold text-white mb-6">选择安全方式</h2>
+          <h2 className="text-2xl font-bold text-white mb-6">设置安全方式</h2>
           
           <div className="space-y-4 mb-6">
             <button
@@ -140,13 +140,15 @@ export default function WalletSetupFlow({
               </div>
             </button>
 
+            {/* Passkey功能暂时禁用 - 取消注释下面的代码块来重新启用 */}
             {passkeySupported && (
               <button
                 onClick={() => {
                   onAuthMethodChange('passkey')
                   onSetupStepChange('setup-passkey')
                 }}
-                className="w-full bg-white/10 hover:bg-white/20 text-white py-4 px-4 rounded-lg transition-all duration-200 backdrop-blur-sm border border-white/20 flex items-center space-x-3"
+                disabled
+                className="line-through w-full bg-white/10 hover:bg-white/20 text-white py-4 px-4 rounded-lg transition-all duration-200 backdrop-blur-sm border border-white/20 flex items-center space-x-3"
               >
                 <span className="text-2xl">🔐</span>
                 <div className="text-left">
@@ -155,6 +157,7 @@ export default function WalletSetupFlow({
                 </div>
               </button>
             )}
+           
           </div>
 
           <button
@@ -166,60 +169,105 @@ export default function WalletSetupFlow({
         </div>
       )
 
-    case 'setup-pin':
+    case 'setup-pin': {
+      const isConfirmStep = confirmPin !== ''
+      
       return (
         <div className="text-center max-w-sm mx-auto">
           <h2 className="text-2xl font-bold text-white mb-6">设置PIN码</h2>
           
-          {!confirmPin ? (
-            <div>
-              <div className="mb-6">
-                <PinInput
+          <div className="space-y-6">
+            {!isConfirmStep ? (
+              // 第一步：设置PIN码
+              <div>
+                <div className="mb-4 text-white/70 text-sm">
+                  请设置6位数字PIN码
+                </div>
+                <PinInputOTP
                   value={pin}
                   onChange={onPinChange}
                   placeholder="设置6位PIN码"
-                  onComplete={(completedPin) => {
-                    onPinChange(completedPin)
-                    onConfirmPinChange('')
+                  label=""
+                />
+                
+                {pin.length === 6 && (
+                  <button
+                    onClick={() => onConfirmPinChange('CONFIRM_STEP')}
+                    className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white py-3 px-4 rounded-lg transition-all duration-200 font-semibold mt-4"
+                  >
+                    下一步：确认PIN码
+                  </button>
+                )}
+              </div>
+            ) : (
+              // 第二步：确认PIN码
+              <div>
+                <div className="mb-4 text-white/70 text-sm">
+                  第一次输入的PIN码：{pin}
+                </div>
+                <div className="mb-4 text-white/70 text-sm">
+                  请再次输入相同的PIN码
+                </div>
+                <PinInputOTP
+                  value={confirmPin === 'CONFIRM_STEP' ? '' : confirmPin}
+                  onChange={(value) => {
+                    console.log('确认PIN码输入:', value, '原PIN码:', pin)
+                    onConfirmPinChange(value)
                   }}
+                  placeholder="确认PIN码"
+                  error={confirmPin.length === 6 && confirmPin !== 'CONFIRM_STEP' && pin !== confirmPin}
+                  label=""
                 />
-              </div>
-              
-              {pin.length === 6 && (
+                
+                {confirmPin.length === 6 && confirmPin !== 'CONFIRM_STEP' && (
+                  <div className="mt-4">
+                    {pin === confirmPin ? (
+                      <div>
+                        <div className="text-green-400 text-sm mb-2">PIN码一致！</div>
+                        <button
+                          onClick={onCreateWallet}
+                          disabled={isLoading}
+                          className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-3 px-4 rounded-lg transition-all duration-200 font-semibold disabled:opacity-50"
+                        >
+                          {isLoading ? '创建中...' : '创建钱包'}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-red-400 text-sm">
+                        两次输入的PIN码不一致<br/>
+                        第一次：{pin}<br/>
+                        第二次：{confirmPin}
+                      </div>
+                    )}
+                  </div>
+                )}
+                
                 <button
-                  onClick={() => onConfirmPinChange('')}
-                  className="w-full bg-white/10 hover:bg-white/20 text-white py-3 px-4 rounded-lg transition-all duration-200 backdrop-blur-sm border border-white/20"
+                  onClick={() => {
+                    onConfirmPinChange('')
+                    onPinChange('')
+                  }}
+                  className="w-full text-white/60 hover:text-white py-2 px-4 rounded-lg transition-all duration-200 mt-4"
                 >
-                  确认PIN码
+                  重新设置
                 </button>
-              )}
-            </div>
-          ) : (
-            <div>
-              <div className="mb-6">
-                <PinInput
-                  value={confirmPin}
-                  onChange={onConfirmPinChange}
-                  placeholder="再次输入PIN码"
-                  error={confirmPin.length === 6 && pin !== confirmPin}
-                  onComplete={onCreateWallet}
-                />
               </div>
-              
-              {error && (
-                <div className="text-red-400 text-sm mb-4">{error}</div>
-              )}
-            </div>
-          )}
+            )}
+            
+            {error && (
+              <div className="text-red-400 text-sm">{error}</div>
+            )}
+          </div>
 
           <button
             onClick={() => onSetupStepChange('choose-auth')}
-            className="w-full text-white/60 hover:text-white py-2 px-4 rounded-lg transition-all duration-200"
+            className="w-full text-white/60 hover:text-white py-2 px-4 rounded-lg transition-all duration-200 mt-6"
           >
             返回
           </button>
         </div>
       )
+    }
 
     case 'setup-passkey':
       return (

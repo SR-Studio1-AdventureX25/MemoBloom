@@ -1,11 +1,11 @@
-import PinInput from '@/components/wallet/PinInput'
+import PinInputOTP from '@/components/wallet/PinInputOTP'
 import { walletCrypto } from '@/services/walletCrypto'
 
 interface LockedWalletViewProps {
   authMethod: 'pin' | 'passkey' | null
   pin: string
   onPinChange: (pin: string) => void
-  onUnlock: () => void
+  onUnlock: (pinCode?: string) => void
   onDeleteWallet: () => void
   error: string
   isLoading: boolean
@@ -33,16 +33,24 @@ export default function LockedWalletView({
       {authMethod === 'pin' ? (
         <div>
           <div className="mb-6">
-            <PinInput
+            <PinInputOTP
               value={pin}
-              onChange={(newPin) => {
+              onChange={(newPin: string) => {
                 onPinChange(newPin)
                 onClearError()
+                // 不在这里触发解锁，只在onComplete时触发
               }}
               placeholder="输入PIN码解锁"
               error={!!error}
-              onComplete={onUnlock}
+              onComplete={(completedPin: string) => {
+                console.log('PIN码输入完成，准备解锁:', completedPin)
+                // 直接使用完成的PIN码进行解锁，不依赖状态同步
+                if (completedPin.length === 6) {
+                  onUnlock(completedPin)
+                }
+              }}
               disabled={isLoading}
+              label=""
             />
           </div>
 
@@ -59,7 +67,7 @@ export default function LockedWalletView({
       ) : (
         <div>
           <button
-            onClick={onUnlock}
+            onClick={() => onUnlock()}
             disabled={isLoading}
             className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white py-4 px-6 rounded-xl transition-all duration-200 font-semibold disabled:opacity-50 flex items-center justify-center space-x-2"
           >

@@ -12,7 +12,7 @@ export { default as NFTManagement } from './nft/NFTManagement'
 // Info
 export { default as WalletInfo } from './info/WalletInfo'
 
-// Existing components
-export { default as PinInput } from './PinInput'
+// Input components
+export { default as PinInputOTP } from './PinInputOTP'
 export { default as MnemonicDisplay } from './MnemonicDisplay'
 export { default as MnemonicImport } from './MnemonicImport'

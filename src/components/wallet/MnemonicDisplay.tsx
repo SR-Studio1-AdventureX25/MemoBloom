@@ -139,10 +139,6 @@ const MnemonicDisplay = ({
             <span>上一页</span>
           </button>
 
-          <div className="text-white/60 text-sm">
-            请逐页记录所有助记词
-          </div>
-
           <button
             onClick={nextPage}
             disabled={currentPage === totalPages - 1}
