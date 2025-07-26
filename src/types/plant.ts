@@ -14,7 +14,6 @@ export interface Plant {
   // 同步相关字段
   lastSyncTime?: number           // 最后同步时间戳
   syncStatus?: 'complete' | 'partial' | 'pending'  // 同步状态
-  isLocalOnly?: boolean           // 是否仅存在于本地（离线创建）
 }
 
 // 植物品种常量
