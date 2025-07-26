@@ -16,7 +16,8 @@ export const BloomDrawSystem = memo<BloomDrawSystemProps>(({ className = "" }) =
     currentPlantId, 
     plants, 
     wateringRecords,
-    addNotification 
+    addNotification,
+    addFavoriteWateringRecord
   } = useAppStore()
   
   const [selectedRecord, setSelectedRecord] = useState<WateringRecord | null>(null)
@@ -112,6 +113,9 @@ export const BloomDrawSystem = memo<BloomDrawSystemProps>(({ className = "" }) =
       return
     }
 
+    // 将抽取的记忆添加到收藏
+    addFavoriteWateringRecord(drawnRecord)
+
     // 设置选中的记录并打开模态框
     setSelectedRecord(drawnRecord)
     setIsModalOpen(true)
@@ -123,7 +127,7 @@ export const BloomDrawSystem = memo<BloomDrawSystemProps>(({ className = "" }) =
       type: 'success',
       read: false
     })
-  }, [canDraw, hasWateredToday, remainingDraws, availableRecordsCount, performMemoryDraw, addNotification])
+  }, [canDraw, hasWateredToday, remainingDraws, availableRecordsCount, performMemoryDraw, addNotification, addFavoriteWateringRecord])
 
   // 关闭模态框
   const handleCloseModal = useCallback(() => {
