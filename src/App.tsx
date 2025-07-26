@@ -55,7 +55,6 @@ function App() {
   const { isAppReady } = useAppInitialization()
   const playerRef = useRef<HTMLAudioElement>(null);
   const [userInteracted, setUserInteracted] = useState(false);
-  const [isRecordingActive, setIsRecordingActive] = useState(false); // eslint-disable-line @typescript-eslint/no-unused-vars
   const volumeAnimationRef = useRef<number | null>(null);
 
   const playAudio = useCallback(async () => {
@@ -104,8 +103,6 @@ function App() {
 
   // 处理录音状态变化
   const handleRecordingStateChange = useCallback((isRecording: boolean) => {
-    setIsRecordingActive(isRecording);
-    
     if (isRecording) {
       // 录音开始时，将音量降低到20%
       fadeVolume(0.2, 300);
